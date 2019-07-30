@@ -1,0 +1,555 @@
+<?php
+
+namespace Shaoxia\Media\Image;
+
+/**
+ * Class File
+ * @package Common\Util
+ */
+class Image
+{
+    private $src;
+    private $image;
+    private $content;
+    private $imageinfo;
+    private $percent  = 1;
+    private $savepath = './tmp/';
+    private $fontpath = './static/fonts/';
+
+    /**
+     * 获取目前支持的字体列表
+     *
+     * @return void
+     * @author chentengfei
+     * @since 
+     */
+    public function getFontList()
+    {
+        $list = [];
+        $files = scandir($this->fontpath);
+        foreach($files as $file) {
+            $ext = substr($file,-4);
+            if (($ext == '.ttf' || $ext == '.otf')) {
+                $name = substr($file,0,strlen($file)-4);
+                $list[$name] = [
+                    'name'  => $name,
+                    'path'  => $this->fontpath . $file,
+                    'asset' => $this->fontpath . $file
+                ];
+            }
+        }
+        return $list;
+    }
+
+    public function getFont($name = '')
+    {
+        if (file_exists($this->fontpath.$name.'.otf')) {
+            return \realpath($this->fontpath.$name.'.otf');
+        } elseif (file_exists($this->fontpath.$name.'.ttf')) {
+            return \realpath($this->fontpath . $name . '.ttf');
+        } else {
+            return \realpath($this->fontpath . 'pingfang-stant.ttf');
+        }
+    }
+
+    public static function px2pound($px)
+    {
+        $config = [
+            4 => 1,
+            6 => 3,
+            8 => 4,
+            10 => 6,
+            12 => 8,
+            14 => 9,
+            16 => 11,
+            18 => 13,
+            19 => 14,
+            20 => 14.5,
+            21 => 15,
+            22 => 16,
+            23 => 17,
+            24 => 17.5,
+            25 => 18,
+            26 => 19,
+            28 => 21,
+            30 => 23,
+            32 => 24,
+            34 => 26,
+            36 => 28,
+            38 => 29,
+            40 => 31
+        ];
+        if (isset($config[$px])) {
+            return $config[$px];
+        } elseif ($px < 4) {
+            return 1;
+        } elseif ($px > 40) {
+            return ($px * 4 / 5);
+        } else {
+            return ($config[$px+1] + $config[$px-1])/2;
+        }
+    }
+
+    /**
+     * 给图片添加文字
+     * @param string $text 文字内容
+     * @param int    $size 字号,磅值，可通过 px2pound 方法转换得出
+     * @param int    $x    起始位置横坐标
+     * @param int    $y    起始位置纵坐标
+     * @param array|string  $rgb  颜色RGB数组或16进制
+     * @param int    $angle 角度
+     * @param string $font 字体文件位置 
+     */
+    public function addText($text, $size, $x, $y, $rgb=[0,0,0], $angle = 0, $font= 'pingfang-stant') 
+    {
+        $color = $this->getColor($rgb);
+        $fontfile = $this->getFont($font);
+        // var_dump(file_exists($fontfile));
+        // 如果支持type 2（opentype, otf后缀） 的话，优先用type 2 （type 2 是 type 1(truetype ttf 后缀) 的超集）
+        if (function_exists('imagefttext')) {
+            $res = imagefttext($this->image,$size,$angle,$x,$y,$color,$fontfile,$text);
+        } else { // 使用默认字体生成
+            $res = imagettftext($this->image,$size,$angle,$x,$y,$color,$fontfile,$text);
+        }
+        return $this;
+    }
+
+    /**
+     * 在图片上添加图片
+     * @param string $path 图片路径
+     * @param int    $x    起始位置横坐标
+     * @param int    $y    起始位置纵坐标
+     * @param int    $dst_width     目标图片宽度,不设为原图
+     * @param int    $dst_height    目标图片高度,不设是按宽度等比例
+     * @param int    $pct  合并程度
+     */
+    public function addPic($path,$x,$y,$dst_width = 0,$dst_height = 0, $pct = 100) 
+    {
+        list($width, $height, $type, $attr) = getimagesize($path);
+        $imageinfo = array(
+            'width'=>$width,
+            'height'=>$height,
+            'type'=>image_type_to_extension($type,false),
+            'attr'=>$attr
+        );
+        !$dst_width  && $dst_width  = $width;
+        !$dst_height && $dst_height = intval($height * $dst_width / $width);
+        $content = file_get_contents($path);
+        $image2 = imagecreatefromstring($content);
+        $image_thump = imagecreatetruecolor($dst_width,$dst_height);
+        //将原图复制带图片载体上面，并且按照一定比例压缩,极大的保持了清晰度
+        imagecopyresampled($image_thump,$image2,0,0,0,0,$dst_width,$dst_height,$imageinfo['width'],$imageinfo['height']);
+        imagedestroy($image2);
+        imagecopymerge($this->image,$image_thump,$x,$y,0,0,$dst_width,$dst_height,$pct);
+        return $this;
+    }
+
+
+    /**
+     * 在图片上添加圆形图片
+     * @param string $path 图片路径
+     * @param int    $x    圆心X
+     * @param int    $y    圆心Y
+     * @param int    $r    半径
+     * @param int    $pct  合并程度
+     */
+    public function addCriclePic($path,$x,$y,$r, $pct = 100) 
+    {
+        list($width, $height, $type, $attr) = getimagesize($path);
+        $imageinfo = array(
+            'width'  => $width,
+            'height' => $height,
+            'type'   => image_type_to_extension($type,false),
+            'attr'   => $attr
+        );
+        $dst_width  = 2 * $r;
+        $dst_height = 2 * $r;
+        $content = file_get_contents($path);
+        $image2 = imagecreatefromstring($content);
+        $image_thump = imagecreatetruecolor($dst_width,$dst_height);
+        //将原图复制带图片载体上面，并且按照一定比例压缩,极大的保持了清晰度
+        imagecopyresampled($image_thump,$image2,0,0,0,0,$dst_width,$dst_height,$imageinfo['width'],$imageinfo['height']);
+        imagedestroy($image2);
+        // 画一个圆图
+        for ($i =0 ;$i < $dst_height; $i ++) {
+            $p = sqrt(2 * $r * $i - $i * $i);
+            if ($p) {
+                $sx = ceil($r - $p);
+                $dx = $x - $r + $sx;
+                $dy = $y - $r + $i;
+                imagecopymerge($this->image,$image_thump,$dx, $dy, $sx, $i, 2 * $p,1,$pct);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * 添加水印
+     * @param int $position 1,左上,2,中上,3,右上,4,左中,5 中,6 右中
+     * @param int $pct 覆盖度,0-100
+     * @param string $waterImage 水印图(一个尺寸不大的png图片)
+     * @param int $padding 边距
+     */
+    public function addWatar($position = 9,$pct = 50, $waterImage = '', $padding = 5) 
+    {
+        list($waterWidth, $waterHeight, $type, $attr) = getimagesize($waterImage);
+        $content = file_get_contents($waterImage);
+        $image2 = imagecreatefromstring($content);
+        $image_thump = imagecreatetruecolor($waterWidth,$waterHeight);
+        // 图片比水印小则不加
+        if ($waterWidth + 2 * $padding > $this->imageinfo['width']  || $waterHeight + 2 * $padding > $this->imageinfo['width']) {
+            return $this;
+        }
+        switch($position) {
+            case 1:
+                $x = $y = $padding;
+                break;
+            case 2:
+                $x = ($this->imageinfo['width'] - $waterWidth) / 2 ;
+                $y = 5;
+                break;
+            case 3:
+                $x = $this->imageinfo['width'] - $waterWidth - $padding;
+                $y = 5;
+                break;
+            case 4:
+                $x = 5;
+                $y = ($this->imageinfo['height'] - $waterHeight) / 2;
+                break;
+            case 5:
+                $x = ($this->imageinfo['width'] - $waterWidth) / 2;
+                $y = ($this->imageinfo['height'] - $waterHeight) / 2;
+                break;
+            case 6:
+                $x = $this->imageinfo['width'] - $waterWidth - $padding;
+                $y = ($this->imageinfo['height'] - $waterHeight) / 2;
+                break;
+            case 7:
+                $x = $padding;
+                $y = $this->imageinfo['height'] - $waterHeight - $padding;
+                break;
+            case 8:
+                $x = ($this->imageinfo['width'] - $waterWidth) / 2;
+                $y = $this->imageinfo['height'] - $waterHeight - $padding;
+                break;
+            case 9:
+                $x = $this->imageinfo['width'] - $waterWidth - $padding;
+                $y = $this->imageinfo['height'] - $waterHeight - $padding;
+                break;
+        }
+        imagecopyresampled($image_thump,$image2,0,0,0,0,$waterWidth,$waterHeight,$waterWidth,$waterHeight);
+        imagedestroy($image2);
+        imagecopymerge($this->image,$image_thump,$x,$y,0,0,$waterWidth,$waterHeight,$pct);
+        return $this;
+    }
+
+    /**
+     * 生成白板图片
+     */
+    public function whiteboard($width, $height ,$rgb = [255,255,255]) 
+    {
+        $image = imagecreatetruecolor($width,$height);
+        $color = imagecolorallocate($image,$rgb[0],$rgb[1],$rgb[2]);
+        imagefill($image,0,0,$color);
+        $this->image = $image;
+        $this->imageinfo = [
+            'width'  => $width,
+            'height' => $height,
+            'type'   => 'png'
+        ];
+        return $this;
+    }
+
+    /**
+     * 添加圆角矩形浮层
+     * 
+     * @param int $sx 起点X
+     * @param int $sy 起点Y
+     * @param int $ex 起点X
+     * @param int $ey 起点Y
+     * @param int $redius 圆角
+     * @param string|array $rgb  起始颜色
+     * @param string|array $rgb2 终点颜色
+     * @param int $direction 方向
+     */
+    public function addLayer($sx, $sy, $ex, $ey, $redius = 0, $rgb = '#fff') 
+    {
+        $width = $ex - $sx;
+        $height = $ey - $sy;
+        $color = $this->getColor($rgb);
+        imagefilledrectangle($this->image, $sx + $redius, $sy, $sx + ($width - $redius), $sy + $redius, $color);        //矩形一
+        imagefilledrectangle($this->image, $sx, $sy + $redius, $sx + $width, $sy + ($height - ($redius * 1)), $color);//矩形二
+        imagefilledrectangle($this->image, $sx + $redius, $sy + ($height - ($redius * 1)), $sx + ($width - ($redius * 1)), $sy + $height, $color);//矩形三
+        imagefilledarc($this->image, $sx + $redius, $sy + $redius, $redius * 2, $redius * 2, 180, 270, $color, IMG_ARC_PIE);   //四分之一圆 - 左上
+        imagefilledarc($this->image, $sx + ($width - $redius), $sy + $redius, $redius * 2, $redius * 2, 270, 360, $color, IMG_ARC_PIE);   //四分之一圆 - 右上
+        imagefilledarc($this->image, $sx + $redius, $sy + ($height - $redius), $redius * 2, $redius * 2, 90, 180, $color, IMG_ARC_PIE);   //四分之一圆 - 左下
+        imagefilledarc($this->image, $sx + ($width - $redius), $sy + ($height - $redius), $redius * 2, $redius * 2, 0, 90, $color, IMG_ARC_PIE);   //四分之一圆 - 右下
+        return $this;
+    }
+
+    /**
+     * 添加长文本
+     * 
+     * @param string $text 长文本
+     * @param float  $size 字体大小（磅）
+     * @param int    $x 开始位置X
+     * @param int    $y 开始位置Y
+     * @param int    $width 文字框宽度
+     * @param int|string $lineHeight 行高
+     * @param string $glue 单词分隔符
+     * @param array|string $rgb 颜色
+     * @param string $font 字体
+     */
+    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb=[0,0,0],$angle = 0, $special = [],$font= 'pingfang-stant') 
+    {
+        $color    = $this->getColor($rgb);
+        $fontfile = $this->getFont($font);
+        $words    = myexplode($glue, $text);
+        var_dump($words,$special);
+        $cur_x    = $x;
+        $cur_y    = $y;
+        $line     = 0;
+        if ('auto' == $lineHeight) {
+            $lineHeight = intval(1.5 * $size);
+        }
+        $cur_width = 0;
+        foreach ($words as $word) {
+            $box = imageftbbox ( $size, $angle, $fontfile, $word.$glue);
+            $box_width = sqrt(pow($box[2] + 1, 2) + pow($box[3] + 1, 2));
+            if ($cur_width + $box_width < $width && $word != "\n") { //不换行
+                $this->addWord($word, $special, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box);
+                $cur_x += $box_width * cos(deg2rad($angle));
+                $cur_y -= $box_width * sin(deg2rad($angle));
+                $cur_width += $box_width;
+            } else { //换行
+                $line ++;
+                $cur_x = $x + $lineHeight * $line * sin(deg2rad($angle));
+                $cur_y = $y + $lineHeight * $line * cos(deg2rad($angle));
+                $this->addWord($word, $special, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box);
+                $cur_x += $box_width * cos(deg2rad($angle));
+                $cur_y -= $box_width * sin(deg2rad($angle));
+                $cur_width = $box_width;
+            }
+        }
+        return $this;
+    }
+
+    public function addWord($word, $special, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box)
+    {
+        if (isset($special[$word])) {
+            $specialType = $special[$word]['type'] ?? '';
+            $func = 'special'.$specialType;
+            if (is_callable([$this,$func])) {
+                $this->$func($word, $special[$word], $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box);
+            } else {
+                imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile, $word);
+            }
+        } else{
+            imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile, $word);
+        }
+    }
+
+    public function specialColor($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box) {
+        $color2 = $this->getColor($params['color']);
+        imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color2, $fontfile, $word);
+    }
+
+    public function specialFont($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box) {
+        $fontfile2 = $this->getFont($params['font']);
+        imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile2, $word);
+    }
+
+    public function specialUnderline($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $box) {
+        $box_width = sqrt(pow($box[2] + 1, 2) + pow($box[3] + 1, 2));
+        $width  = $params['width'] ?? 1;
+        $sx = $cur_x + $width * sin(deg2rad($angle));
+        $sy = $cur_y - $width * cos(deg2rad($angle));
+        $ex = $cur_x + $box_width * cos(deg2rad($angle));
+        $ey = $cur_y - $box_width * sin(deg2rad($angle)) + $width * cos(deg2rad($angle));
+        $this->addLayer($sx , $sy ,$ex , $ey, $width / 2 , $params['color'] ?? '#fff');
+        imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile, $word);
+    }
+
+    // public function specialFont($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile) {
+    //     $fontfile2 = $this->getFont($params['font']);
+    //     imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile2, $word);
+    // }
+
+
+
+    /**
+     * 按比例压缩(文件体)
+     */
+    public function compress($content, $percent = 1) 
+    {
+        $this->content = $content;
+        $this->percent = $percent;
+        $this->_openImage();
+        return $this;
+    }
+
+    // 按比例压缩(文件路径)
+    public function compressFile($file,$percent = 1) 
+    {
+        $this->src = $file;
+        $this->content = @file_get_contents($file);
+        $this->percent = $percent;
+        $this->_openImage();
+        return $this;
+    }
+
+    // 按固定尺寸压缩(文件体)
+    public function thump($content,$width,$height = 0)
+    {
+        $this->content = $content;
+        $this->_openImage($width,$height);
+        return $this;
+    }
+
+    // 按固定尺寸压缩(文件路径)
+    public function thumpFile($file,$width,$height = 0)
+    {
+        $this->src = $file;
+        $this->content = @file_get_contents($file);
+        $this->_openImage($width,$height);
+        return $this;
+    }
+
+    private function _openImage($thump_width =0 ,$thump_height = 0)
+    {
+        list($width, $height, $type, $attr) = getimagesizefromstring($this->content);
+        $this->imageinfo = array(
+            'width'=>$width,
+            'height'=>$height,
+            'type'=>image_type_to_extension($type,false),
+            'attr'=>$attr
+        );
+        $this->image = imagecreatefromstring($this->content);
+        $this->_thumpImage($thump_width,$thump_height);
+    }
+
+    private function _thumpImage($width =0 ,$height = 0)
+    {
+        if ($width > 0 && $height == 0) {
+            $height = intval($this->imageinfo['width'] / $width * $this->imageinfo['height']); 
+        }
+        $new_width = $width ?: $this->imageinfo['width'] * $this->percent;
+        $new_height = $height ?: $this->imageinfo['height'] * $this->percent;
+        $image_thump = imagecreatetruecolor($new_width,$new_height);
+        //将原图复制带图片载体上面，并且按照一定比例压缩
+        imagecopyresampled($image_thump,$this->image,0,0,0,0,$new_width,$new_height,$this->imageinfo['width'],$this->imageinfo['height']);
+        imagedestroy($this->image);
+        $this->image = $image_thump;
+    }
+
+    public function check()
+    {
+        return $this->image?true:false;
+    }
+
+    /**
+     * 本地存储
+     * @param string $dstImgName 存储路径
+     * @param string $filetype 保存格式 png|jpeg
+     */
+    public function saveImageLocal($dstImgName, $filetype="")
+    {
+        if(empty($dstImgName)) return false;
+        $allowImgs = ['.jpg', '.jpeg', '.png', '.bmp', '.wbmp','.gif'];   //如果目标图片名有后缀就用目标图片扩展名 后缀，如果没有，则用源图的扩展名
+        $dstExt =  strrchr($dstImgName ,".");
+        $sourseExt = strrchr($this->src ,".");
+        if(!empty($dstExt)) $dstExt =strtolower($dstExt);
+        if(!empty($sourseExt)) $sourseExt =strtolower($sourseExt);
+        //有指定目标名扩展名
+        if(!empty($dstExt) && in_array($dstExt,$allowImgs)){
+            $dstName = $dstImgName;
+        }elseif(!empty($sourseExt) && in_array($sourseExt,$allowImgs)){
+            $dstName = $dstImgName.$sourseExt;
+        }else{
+            $dstName = $dstImgName.($filetype?:$this->imageinfo['type']);
+        }
+        $funcs = "image".($filetype?:$this->imageinfo['type']);
+        $funcs($this->image,$this->savepath . $dstName);
+        return $dstName;
+    }
+
+    /**
+     * 云端存储
+     * 
+     * @param string $dstImgName 存储路径
+     * @param string $filetype   保存格式(png,jpeg)
+     * @param string $cloud      云名称
+     * @return string|boolean    图片位置,失败返回false
+     */
+    public function saveImageToCloud($dstImgName,$filetype="",$cloud = "Qiniu")
+    {
+        if(empty($dstImgName)) return false;
+        // 保存到 tmp 临时目录下
+        $localName = $this->savepath . uniqid();
+        $funcs = "image".($filetype?:$this->imageinfo['type']);
+        $res = $funcs($this->image,$localName);
+        if(!$res) {
+            return false;
+        }
+        $funcs = 'upload'.ucfirst($cloud);
+        return $this->$funcs($dstImgName, $localName);
+    }
+
+    /**
+     * 上传到七牛
+     */
+    protected function uploadQiniu ($dstImgName,$localName) {
+        vendor('Qn.autoload');
+        $setting = C('UPLOAD_SITEIMG_QINIU');
+        $auth  = new \Qiniu\Auth($setting['driverConfig']['accessKey'], $setting['driverConfig']['secretKey']);
+        $token = $auth->uploadToken('ylyk-image');
+        $UploadManager = new \Qiniu\Storage\UploadManager();
+        $res = $UploadManager->putFile($token,$dstImgName,$localName,null,'application/octet-stream',false);
+        @unlink($localName);
+        if (!empty($res[0]['key'])) {
+            return 'https://img-cdn1.ylyk.com/' . $res[0]['key'];
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 16进制颜色转数组
+     *
+     * @param [type] $hexColor
+     * @return void
+     * @author chentengfei
+     * @since
+     */
+    public function hex2rgb($hexColor) {
+        $color = str_replace('#', '', $hexColor);
+        if (strlen($color) > 3) {
+            $rgb = array(
+                hexdec(substr($color, 0, 2)),
+                hexdec(substr($color, 2, 2)),
+                hexdec(substr($color, 4, 2))
+            );
+        } else {
+            $r = substr($color, 0, 1) . substr($color, 0, 1);
+            $g = substr($color, 1, 1) . substr($color, 1, 1);
+            $b = substr($color, 2, 1) . substr($color, 2, 1);
+            $rgb = array(
+                hexdec($r),
+                hexdec($g),
+                hexdec($b)
+            );
+        }
+        return $rgb;
+    }
+
+    public function getColor($rgb) {
+        if (is_string($rgb)) { // 颜色如果是16进制的话，先转成数组
+            $rgb = $this->hex2rgb($rgb);
+        }
+        return imagecolorallocatealpha($this->image, $rgb[0], $rgb[1], $rgb[2], 0);
+    }
+
+    public function __destruct(){
+        imagedestroy($this->image);
+    }
+}

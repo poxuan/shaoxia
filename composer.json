@@ -1,0 +1,19 @@
+{
+    "name": "callmecsx/shaoxia",
+    "description": "awesome",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "chentengfei",
+            "email": "958718201@qq.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Shaoxia\\": "src"
+        }
+    }
+
+}
