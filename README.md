@@ -1,3 +1,5 @@
 # Shaoxia-PHP
 
-本项目记录工作学习中使用到的一些代码片段
+记录工作学习中遇到的有趣或傻逼需求
+
+[Media](./src/Media/Readme.md)

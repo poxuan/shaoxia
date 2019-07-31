@@ -16,6 +16,25 @@ class Image
     private $savepath = './tmp/';
     private $fontpath = './static/fonts/';
 
+    private $background = '#fff';
+    // 默认字体
+    const FONT_DEFAULT = 'pingfang-standard';
+
+    // 方向,可叠加使用
+    const DIRE_CENTER  = 0;
+    const DIRE_LEFT    = 1;
+    const DIRE_RIGHT   = 2;
+    const DIRE_UP      = 4;
+    const DIRE_DOWN    = 8;
+
+    //颜色
+    const COLOR_BLACK  = '#000';
+    const COLOR_WHITE  = '#fff';
+    const COLOR_RED    = '#f00';
+    const COLOR_GREEN  = '#0f0';
+    const COLOR_BLUE   = '#00f';
+
+
     /**
      * 获取目前支持的字体列表
      *
@@ -33,14 +52,21 @@ class Image
                 $name = substr($file,0,strlen($file)-4);
                 $list[$name] = [
                     'name'  => $name,
-                    'path'  => $this->fontpath . $file,
-                    'asset' => $this->fontpath . $file
+                    'path'  => $this->fontpath . $file
                 ];
             }
         }
         return $list;
     }
 
+    /**
+     * 按名称获取字体文件
+     *
+     * @param string $name
+     * @return void
+     * @author chentengfei
+     * @since
+     */
     public function getFont($name = '')
     {
         if (file_exists($this->fontpath.$name.'.otf')) {
@@ -48,7 +74,7 @@ class Image
         } elseif (file_exists($this->fontpath.$name.'.ttf')) {
             return \realpath($this->fontpath . $name . '.ttf');
         } else {
-            return \realpath($this->fontpath . 'pingfang-stant.ttf');
+            return \realpath($this->fontpath . 'pingfang-standard.ttf');
         }
     }
 
@@ -100,11 +126,10 @@ class Image
      * @param int    $angle 角度
      * @param string $font 字体文件位置 
      */
-    public function addText($text, $size, $x, $y, $rgb=[0,0,0], $angle = 0, $font= 'pingfang-stant') 
+    public function addText($text, $size, $x, $y, $rgb= self::COLOR_BLACK, $angle = 0, $font= 'pingfang-standard') 
     {
         $color = $this->getColor($rgb);
         $fontfile = $this->getFont($font);
-        // var_dump(file_exists($fontfile));
         // 如果支持type 2（opentype, otf后缀） 的话，优先用type 2 （type 2 是 type 1(truetype ttf 后缀) 的超集）
         if (function_exists('imagefttext')) {
             $res = imagefttext($this->image,$size,$angle,$x,$y,$color,$fontfile,$text);
@@ -174,7 +199,7 @@ class Image
         for ($i =0 ;$i < $dst_height; $i ++) {
             $p = sqrt(2 * $r * $i - $i * $i);
             if ($p) {
-                $sx = ceil($r - $p);
+                $sx = round($r - $p);
                 $dx = $x - $r + $sx;
                 $dy = $y - $r + $i;
                 imagecopymerge($this->image,$image_thump,$dx, $dy, $sx, $i, 2 * $p,1,$pct);
@@ -246,8 +271,12 @@ class Image
     /**
      * 生成白板图片
      */
-    public function whiteboard($width, $height ,$rgb = [255,255,255]) 
+    public function whiteboard($width, $height ,$rgb = self::COLOR_WHITE) 
     {
+        
+        if (is_string($rgb)) // 颜色字符转数组
+            $rgb = $this->hex2rgb($rgb);
+        $this->background = $rgb;
         $image = imagecreatetruecolor($width,$height);
         $color = imagecolorallocate($image,$rgb[0],$rgb[1],$rgb[2]);
         imagefill($image,0,0,$color);
@@ -269,11 +298,13 @@ class Image
      * @param int $ey 起点Y
      * @param int $redius 圆角
      * @param string|array $rgb  起始颜色
-     * @param string|array $rgb2 终点颜色
-     * @param int $direction 方向
+     * @param array $shadow  阴影
      */
-    public function addLayer($sx, $sy, $ex, $ey, $redius = 0, $rgb = '#fff') 
+    public function addLayer($sx, $sy, $ex, $ey, $redius = 0, $rgb = self::COLOR_WHITE, $shadow = []) 
     {
+        if ($shadow) {
+            $this->addLayerShadow($sx, $sy, $ex, $ey, $redius, $shadow);
+        }
         $width = $ex - $sx;
         $height = $ey - $sy;
         $color = $this->getColor($rgb);
@@ -284,7 +315,165 @@ class Image
         imagefilledarc($this->image, $sx + ($width - $redius), $sy + $redius, $redius * 2, $redius * 2, 270, 360, $color, IMG_ARC_PIE);   //四分之一圆 - 右上
         imagefilledarc($this->image, $sx + $redius, $sy + ($height - $redius), $redius * 2, $redius * 2, 90, 180, $color, IMG_ARC_PIE);   //四分之一圆 - 左下
         imagefilledarc($this->image, $sx + ($width - $redius), $sy + ($height - $redius), $redius * 2, $redius * 2, 0, 90, $color, IMG_ARC_PIE);   //四分之一圆 - 右下
+        
         return $this;
+    }
+
+    public function addLayerShadow($sx, $sy, $ex, $ey, $redius, $shadow) {
+        $h = $shadow[0] ?? 0;
+        $v = $shadow[1] ?? 0;
+        $blur = $shadow[2] ?? 5;
+        $color = $shadow[3] ?? '#888';
+        $this->addLayer($sx + $h, $sy + $v, $ex + $h, $ey + $v, $redius , $color);
+        for($i = $blur;$i > 0; $i --) {
+            $radio = ($blur - $i) / ($blur + 1);
+            $c = $this->getGradientColor($color, $this->background, $radio * $radio);
+            $this->addLayer($sx + $h - $i, $sy + $v - $i, $ex + $h + $i, $ey + $v + $i, $redius + $i,$c);
+        }
+        return $this;
+    }
+
+
+    /**
+     * 添加渐变圆角矩形浮层
+     * 
+     * @param int $sx 起点X
+     * @param int $sy 起点Y
+     * @param int $ex 起点X
+     * @param int $ey 起点Y
+     * @param int $redius 圆角
+     * @param string|array $rgb1  起始颜色
+     * @param string|array $rgb2  目标颜色
+     * @param int|array $direction 方向或目标点
+     */
+    public function addGradientLayer($sx, $sy, $ex, $ey, $redius = 0, $rgb1 = self::COLOR_WHITE, $rgb2 = self::COLOR_BLACK, $direction = self::DIRE_RIGHT, $shadow = []) 
+    {
+        if ($shadow) {
+            $this->addLayerShadow($sx, $sy, $ex, $ey, $redius, $shadow);
+        }
+        $width = $ex - $sx;
+        $height = $ey - $sy;
+        $colors = $this->getPointColor($sx, $sy, $ex, $ey, $direction, $rgb1, $rgb2);
+        for ($i = $sx; $i < $ex; $i ++) {
+            for ($j = $sy; $j < $ey; $j ++) {
+                $in = $this->inLayer($sx, $sy, $ex, $ey, $redius, $i, $j);
+                if ($in) {
+                    $color = $this->getColor($colors[$i][$j]);
+                    imagesetpixel($this->image, $i, $j, $color);
+                }
+            }
+        }
+        return $this;
+    }
+
+    public function getGradientColor($from, $to, $ratio = 1) 
+    {
+        if (is_string($from)) // 颜色字符转数组
+            $from = $this->hex2rgb($from);
+        if (is_string($to))  
+            $to = $this->hex2rgb($to);
+        $r = round(abs($to[0] - abs($ratio * ($from[0] - $to[0]))));
+        $g = round(abs($to[1] - abs($ratio * ($from[1] - $to[1]))));
+        $b = round(abs($to[2] - abs($ratio * ($from[2] - $to[2]))));
+        return [$r,$g,$b];
+    }
+
+    public function getAimPoint($sx, $sy, $ex, $ey, $direction) 
+    {
+        $aim_x = $aim_y = 0;
+        if (!is_array($direction)) {
+            if ($direction & self::DIRE_LEFT) {
+                $aim_x = $sx;
+            }
+            if ($direction & self::DIRE_RIGHT) {
+                $aim_x = $aim_x ? ($ex + $sx) /2 : $ex;
+            }
+            if ($direction & self::DIRE_UP) {
+                $aim_y = $sy;
+            }
+            if ($direction & self::DIRE_DOWN) {
+                $aim_y = $aim_y ? ($ey + $sy) /2 : $ey;
+            }
+        } else {
+            $aim_x = $direction[0];
+            $aim_y = $direction[1];
+        }
+        return [$aim_x, $aim_y];
+    }
+
+    public function getPointColor($sx, $sy, $ex, $ey, $direction, $rgb1, $rgb2)
+    {
+        $points = [];
+        list($to_x, $to_y) = $this->getAimPoint($sx, $sy, $ex, $ey, $direction);
+        
+        if (is_string($rgb1)) // 颜色字符转数组
+            $rgb1 = $this->hex2rgb($rgb1);
+        if (is_string($rgb2))  
+            $rgb2 = $this->hex2rgb($rgb2);
+        for ($i = $sx; $i < $ex; $i ++) {
+            for ($j = $sy; $j < $ey; $j ++) {
+                if ($to_y == 0 && $to_x == 0) {
+                    $points[$i][$j] = $rgb1;
+                } elseif ($to_y == 0) { 
+                    if ($i == $to_x) {
+                        $points[$i][$j] = $rgb2;
+                    } else {
+                        $ratio = $i > $to_x ? ($i - $to_x) / ($ex - $to_x) : ($to_x - $i) / ($to_x - $sx);
+                        $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio);
+                    }
+                } elseif ($to_x == 0) {
+                    if ($j == $to_y) {
+                        $points[$i][$j] = $rgb2;
+                    } else {
+                        $ratio = $j > $to_y ? ($i - $to_y) / ($ey - $to_y) : ($to_y - $i) / ($to_y - $sy);
+                        $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio);
+                    }
+                } else {
+                    $x = abs($i - $to_x);
+                    $y = abs($j - $to_y);
+                    $hx = max($ex - $to_x , $to_x - $sx);
+                    $hy = max($ey - $to_y , $to_y - $sy);
+                    $ratio = sqrt(($x * $x  + $y * $y) / ($hx * $hx  + $hy * $hy));
+                    // if ($i == 50) {
+                    //     var_dump($x,$y,$hx,$hy,$ratio);
+                    // }
+                    $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio);
+                }
+            }
+        }
+        return $points;
+    }
+
+    public function inLayer($sx, $sy, $ex, $ey, $redius, $i, $j) 
+    {
+        // 内点；圆角的四个圆心
+        $xl    = $sx + $redius;
+        $xr    = $ex - $redius;
+        $yt    = $sy + $redius;
+        $yb    = $ey - $redius;
+        $r2    = $redius * $redius;
+        $dis = 0;
+        if ($i < $xl && $j < $yt) { // 左上角圆角区
+            $x = $xl - $i;
+            $y = $yt - $j;
+            $dis = $x * $x + $y * $y - $r2;
+        } elseif ($i < $xl && $j > $yb) {// 左下角圆角区
+            $x = $xl - $i;
+            $y = $j - $yb;
+            $dis = $x * $x + $y * $y - $r2;
+        } elseif ($i > $xr && $j < $yt) {// 右上角圆角区
+            $x = $i - $xr;
+            $y = $yt - $j;
+            $dis = $x * $x + $y * $y - $r2;
+        } elseif ($i > $xr && $j > $yb) {// 右下角圆角区
+            $x = $i - $xr;
+            $y = $j - $yb;
+            $dis = $x * $x + $y * $y - $r2;
+        } 
+        if ($dis > 0) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -300,12 +489,11 @@ class Image
      * @param array|string $rgb 颜色
      * @param string $font 字体
      */
-    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb=[0,0,0],$angle = 0, $special = [],$font= 'pingfang-stant') 
+    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb = self::COLOR_BLACK,$angle = 0, $special = [], $font = self::FONT_DEFAULT) 
     {
         $color    = $this->getColor($rgb);
         $fontfile = $this->getFont($font);
         $words    = myexplode($glue, $text);
-        var_dump($words,$special);
         $cur_x    = $x;
         $cur_y    = $y;
         $line     = 0;
@@ -470,7 +658,7 @@ class Image
         }
         $funcs = "image".($filetype?:$this->imageinfo['type']);
         $funcs($this->image,$this->savepath . $dstName);
-        return $dstName;
+        return $this->savepath . $dstName;
     }
 
     /**
@@ -499,15 +687,14 @@ class Image
      * 上传到七牛
      */
     protected function uploadQiniu ($dstImgName,$localName) {
-        vendor('Qn.autoload');
-        $setting = C('UPLOAD_SITEIMG_QINIU');
-        $auth  = new \Qiniu\Auth($setting['driverConfig']['accessKey'], $setting['driverConfig']['secretKey']);
-        $token = $auth->uploadToken('ylyk-image');
+        $setting = config('qiniu');
+        $auth  = new \Qiniu\Auth($setting['accessKey'], $setting['secretKey']);
+        $token = $auth->uploadToken($setting['bucket']);
         $UploadManager = new \Qiniu\Storage\UploadManager();
         $res = $UploadManager->putFile($token,$dstImgName,$localName,null,'application/octet-stream',false);
         @unlink($localName);
         if (!empty($res[0]['key'])) {
-            return 'https://img-cdn1.ylyk.com/' . $res[0]['key'];
+            return $setting['domain'] . $res[0]['key'];
         } else {
             return false;
         }

@@ -1,7 +1,7 @@
 <?php
 
 
-function myexplode($glue, $str) 
+function myexplode(string $glue,string $str) 
 {
     if ($glue !== '') {
         return explode($glue, $str);
@@ -23,19 +23,29 @@ function myexplode($glue, $str)
         } else {
             $len = 1;
         }
-        if ($len > 1 || $lastLen > 1) {
+        if ($len > 1 || $lastLen > 1 ) {
             $word[] = substr($str, $lastPos , $i - $lastPos);
             $lastPos = $i;
-        } elseif( in_array($str[$i],[' ',"\t","\r"])) {
-            $word[] = substr($str, $lastPos , $i - $lastPos) . $str[$i];
-            $lastPos = $i + 1;
-        } elseif ($str[$i] == "\n") {
+        } elseif( in_array($str[$i],[' ',"\t","\r","\n"])) {
             $word[] = substr($str, $lastPos , $i - $lastPos);
             $word[] = "\n";
             $lastPos = $i+1;
+            $lastPos = $i + 1;
         }
         $lastLen = $len;
     }
     $word[] = substr($str, $lastPos);
-    return array_filter($word);
+    return array_filter($word,function($item){return $item !== '';});
+}
+
+function config($name = '', $default = null) 
+{
+    $value = $configs;
+    if ($name == '') 
+        return $value;
+    $names = explode('.',$name);
+    for($i = 0; $i <count($names); $i++) {
+        $value = $value[$names[$i]] ?? null;
+    }
+    return  is_null($value) ? $default : $value;
 }

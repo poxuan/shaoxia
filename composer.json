@@ -9,7 +9,9 @@
             "email": "958718201@qq.com"
         }
     ],
-    "require": {},
+    "require": {
+        "qiniu/php-sdk": "^7.2"
+    },
     "autoload": {
         "psr-4": {
             "Shaoxia\\": "src"
