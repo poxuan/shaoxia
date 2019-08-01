@@ -30,24 +30,42 @@ class Media
                 'color' => '#ff0',
                 'width' => '4',
             ],
-
         ];
-        $image->whiteboard(750,1700) // 生成 750*1700 的白板
-            ->addLayerShadow(50,430,700,570,20,[1,1]) // 添加一个圆角浮层,带阴影
-            ->addPic('./static/img/pic2.jpg',0,0,750,500) // 在 左上角 添加 750*500 的图片
-            ->addLayer(50,430,700,570,20,Image::COLOR_WHITE) // 添加一个圆角浮层,带阴影
-            ->addCriclePic('./static/img/pic1.jpg',130,500,50) // 添加圆图
-            ->addLongText($longTest, Image::px2pound(28), 200, 480, 450, 50, "", "#666", $angle, $special,'pingfang-slim') // 添加长段文字
-            ->addLongText($longTest2, 38, 40, 720, 700, 80, " ", "#000", $angle, $special)
-            ->addText("商业|亚马逊：《霸王硬上弓》", 26, 40 , 900, "#000", $angle ,'pingfang-standard')
-            ->addLayer(40,950,200,956,1,"#aaa")
-            ->addLongText($longTest3, 26, 40, 1050, 700, 60, "", "#444", $angle, $special,'pingfang-slim')
-            ->addGradientLayer(50,1300,700,1600,20,Image::COLOR_RED,Image::COLOR_BLACK) // 添加一个圆角浮层,带阴影
-            ->addText("长按扫码，关注【xxx】", 26, 80 , 1400, "#fff", $angle ,'pingfang-slim')
-            ->addText("生成一张分享图片。", 32, 80 , 1466, "#fff", $angle ,'pingfang-standard')
-            ->addLayer(80,1500,410,1546,23,Image::COLOR_WHITE)
-            ->addText("傻逼需求。。。", 26, 120 , 1535, Image::COLOR_RED, $angle ,'pingfang-slim')
-            ->addPic('./static/img/wechat.jpg',460,1340,220,220);
+        $steps = [
+            ['whiteboard',750,1700],
+            ['addLayerShadow',50,430,700,570,20,[1,1]],
+            ['addPic','./static/img/pic2.jpg',0,0,750,500],
+            ['addLayer',50,430,700,570,20,Image::COLOR_WHITE],
+            ['addCriclePic','./static/img/pic1.jpg',130,500,50],
+            ['addLongText',$longTest, Image::px2pound(28), 200, 480, 450, 50, "", "#666", $angle, $special,'pingfang-slim'],
+            ['addLongText',$longTest2, 38, 40, 720, 700, 80, " ", "#000", $angle, $special],
+            ['addText',"商业|亚马逊：《霸王硬上弓》", 26, 40 , 900, "#000", $angle ,'pingfang-standard'],
+            ['addLayer',40,950,200,956,1,"#aaa"],
+            ['addLongText',$longTest3, 26, 40, 1050, 700, 60, "", "#444", $angle, $special,'pingfang-slim'],
+            ['addGradientLayer',50,1300,700,1600,20,Image::COLOR_RED,Image::COLOR_BLACK],
+            ['addText',"长按扫码，关注【xxx】", 26, 80 , 1400, "#fff", $angle ,'pingfang-slim'],
+            ['addText',"生成一张分享图片。", 32, 80 , 1466, "#fff", $angle ,'pingfang-standard'],
+            ['addLayer',80,1500,410,1546,23,Image::COLOR_WHITE],
+            ['addText',"傻逼需求。。。", 26, 120 , 1535, Image::COLOR_RED, $angle ,'pingfang-slim'],
+            ['addPic','./static/img/wechat.jpg',460,1340,220,220],
+        ];
+        $image->make($steps);
+        // $image->whiteboard(750,1700) // 生成 750*1700 的白板
+        //     ->addLayerShadow(50,430,700,570,20,[1,1]) // 添加一个圆角浮层,带阴影
+        //     ->addPic('./static/img/pic2.jpg',0,0,750,500) // 在 左上角 添加 750*500 的图片
+        //     ->addLayer(50,430,700,570,20,Image::COLOR_WHITE) // 添加一个圆角浮层,带阴影
+        //     ->addCriclePic('./static/img/pic1.jpg',130,500,50) // 添加圆图
+        //     ->addLongText($longTest, Image::px2pound(28), 200, 480, 450, 50, "", "#666", $angle, $special,'pingfang-slim') // 添加长段文字
+        //     ->addLongText($longTest2, 38, 40, 720, 700, 80, " ", "#000", $angle, $special)
+        //     ->addText("商业|亚马逊：《霸王硬上弓》", 26, 40 , 900, "#000", $angle ,'pingfang-standard')
+        //     ->addLayer(40,950,200,956,1,"#aaa")
+        //     ->addLongText($longTest3, 26, 40, 1050, 700, 60, "", "#444", $angle, $special,'pingfang-slim')
+        //     ->addGradientLayer(50,1300,700,1600,20,Image::COLOR_RED,Image::COLOR_BLACK) // 添加一个圆角浮层,带阴影
+        //     ->addText("长按扫码，关注【xxx】", 26, 80 , 1400, "#fff", $angle ,'pingfang-slim')
+        //     ->addText("生成一张分享图片。", 32, 80 , 1466, "#fff", $angle ,'pingfang-standard')
+        //     ->addLayer(80,1500,410,1546,23,Image::COLOR_WHITE)
+        //     ->addText("傻逼需求。。。", 26, 120 , 1535, Image::COLOR_RED, $angle ,'pingfang-slim')
+        //     ->addPic('./static/img/wechat.jpg',460,1340,220,220);
         $end = microtime(true);
         echo $image->saveImageLocal('test-'.time().'.jpg','jpeg'); //存入本地
         echo "\ntime cost:" . intval(($end - $start) * 1000) ." ms";

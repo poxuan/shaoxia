@@ -964,6 +964,24 @@ class Image
     }
 
     /**
+     * 以数组方式调用
+     *
+     * @param array $steps
+     * @return void
+     * @author chentengfei
+     * @since
+     */
+    public function make($steps)
+    {
+        foreach($steps as $step) {
+            $func = array_shift($step);
+            if (method_exists($this,$func)) {
+                \call_user_func_array([$this,$func],$step);
+            }
+        }
+    }
+
+    /**
      * 析构，释放图片句柄
      *
      * @author chentengfei
