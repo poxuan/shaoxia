@@ -840,7 +840,7 @@ class Image
      */
     public function saveImageLocal($dstImgName, $filetype = "")
     {
-        if (empty($dstImgName)) {
+        if (empty($dstImgName) || empty($this->image)) {
             return false;
         }
 
@@ -989,6 +989,6 @@ class Image
      */
     public function __destruct()
     {
-        imagedestroy($this->image);
+        $this->image && imagedestroy($this->image);
     }
 }

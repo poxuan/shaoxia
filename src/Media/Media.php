@@ -6,10 +6,9 @@ use \Shaoxia\Media\Image\Image;
 
 class Media 
 {
-    public function image()
+    public function image(int $angle = 0)
     {
         $argv  = func_get_args();
-        $angle = $argv[0] ?? 0;     // 偏转角度
         $start = microtime(true);
         $image = new Image();
         $pound = Image::px2pound(28); // px 长度转 pound 长度，用于字体
@@ -67,8 +66,22 @@ class Media
         //     ->addText("傻逼需求。。。", 26, 120 , 1535, Image::COLOR_RED, $angle ,'pingfang-slim')
         //     ->addPic('./static/img/wechat.jpg',460,1340,220,220);
         $end = microtime(true);
-        echo $image->saveImageLocal('test-'.time().'.jpg','jpeg'); //存入本地
-        echo "\ntime cost:" . intval(($end - $start) * 1000) ." ms";
-        echo "\nmem  cost:" . round(memory_get_usage() / 1024,2)." KB\n";
+        $filename = 'test-'.time().'.jpg';
+        $path = $image->saveImageLocal($filename,'jpeg');
+        return ['path' => $path,'time_cost' => intval(($end - $start) * 1000)." ms", 'mem_cost' => round(memory_get_usage() / 1024,2)." KB"];
+    }
+
+    public function create()
+    {
+        $steps = $_POST['steps'] ?? [];
+        $image = new Image();
+        $image->make($steps);
+        $filename = 'test-'.time().'.jpg';
+        $path = $image->saveImageLocal($filename,'jpeg');
+        if ($path) {
+            echo '<a href="/tmp/'.$filename.'">图片</a>'; //存入本地
+        } else {
+            echo '图片生成失败'; //存入本地
+        }
     }
 }
