@@ -33,13 +33,13 @@ class application
     }
 
     public function __clone() {
-        
+
     }
 
     private function ini()
     {
         $this->alias();
-        $this->clazz = $this->ini_clazz($this->clazz);
+        
     }
 
     private function alias()
@@ -51,23 +51,27 @@ class application
     }
 
     public function exec()
-    {
-        $method = new ReflectionMethod($this->clazz, $this->func);
-        foreach ($method->getParameters() as $param) {
-            $name = $param->getName();
-            $default = $param->getDefaultValue();
-            $clazz2 = $param->getClass();
-            $type = $param->getType();
-            if ($clazz2) {
-                $params[] = $this->ini_clazz($clazz2);
-            } else {
-                $params[] = $this->request->get($name, $default);
-            }
-        }
+    { 
         try {
+            $class = $this->ini_clazz($this->clazz);
+            if (!method_exists($class, $this->func)) {
+                throw new Exception("class mothod {$this->clazz}@{$this->func} not found");
+            }
+            $method = new ReflectionMethod($this->clazz, $this->func);
+            foreach ($method->getParameters() as $param) {
+                $name    = $param->getName();
+                $default = $param->getDefaultValue();
+                $clazz2  = $param->getClass();
+                $type    = $param->getType();
+                if ($clazz2) {
+                    $params[] = $this->ini_clazz($clazz2);
+                } else {
+                    $params[] = $this->request->get($name, $default);
+                }
+            }
             $result = call_user_func_array([$this->clazz, $this->func], $params);
         } catch (Exception $exception) {
-            $result = $this->handler->render($this->request, $exception);
+            $result = $this->handler ? $this->handler->render($this->request, $exception) : $exception->getMessage();
         }
         $this->response->resource($result)->output();
     }
