@@ -53,23 +53,12 @@ class application
     public function exec()
     { 
         try {
-            $class = $this->ini_clazz($this->clazz);
-            if (!method_exists($class, $this->func)) {
+            if (!method_exists($this->clazz, $this->func)) {
                 throw new Exception("class mothod {$this->clazz}@{$this->func} not found");
             }
-            $method = new ReflectionMethod($this->clazz, $this->func);
-            foreach ($method->getParameters() as $param) {
-                $name    = $param->getName();
-                $default = $param->getDefaultValue();
-                $clazz2  = $param->getClass();
-                $type    = $param->getType();
-                if ($clazz2) {
-                    $params[] = $this->ini_clazz($clazz2);
-                } else {
-                    $params[] = $this->request->get($name, $default);
-                }
-            }
-            $result = call_user_func_array([$this->clazz, $this->func], $params);
+            $class = $this->ini_clazz($this->clazz);
+            $params = $this->ini_param($class, $this->func);
+            $result = call_user_func_array([$class, $this->func], $params);
         } catch (Exception $exception) {
             $result = $this->handler ? $this->handler->render($this->request, $exception) : $exception->getMessage();
         }
@@ -98,6 +87,23 @@ class application
             }
         }
         return call_user_func_array([$clazz, '__construct'], $params);
+    }
+
+    private function ini_param($clazz, $func)
+    {
+        $method = new ReflectionMethod($clazz, $func);
+        foreach ($method->getParameters() as $param) {
+            $name    = $param->getName();
+            $default = $param->getDefaultValue();
+            $clazz2  = $param->getClass();
+            $type    = $param->getType();
+            if ($clazz2) {
+                $params[] = $this->ini_clazz($clazz2);
+            } else {
+                $params[] = $this->request->get($name, $default);
+            }
+        }
+        return $params;
     }
 
 }
