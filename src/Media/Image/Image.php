@@ -15,7 +15,7 @@ class Image
     private $percent = 1;
     private $savepath = './tmp/';
     private $fontpath = './static/fonts/';
-
+    private $fontdefault = 'pingfang-standard';
     private $background = '#fff';
 
     // 默认字体
@@ -74,7 +74,7 @@ class Image
         } elseif (file_exists($this->fontpath . $name . '.ttf')) {
             return \realpath($this->fontpath . $name . '.ttf');
         } else {
-            return \realpath($this->fontpath . self::FONT_DEFAULT . '.ttf');
+            return \realpath($this->fontpath . $this->fontdefault . '.ttf');
         }
     }
 
@@ -135,7 +135,7 @@ class Image
      * @param int    $angle 角度
      * @param string $font 字体文件位置
      */
-    public function addText($text, $size, $x, $y, $rgb = self::COLOR_BLACK, $angle = 0, $font = self::FONT_DEFAULT)
+    public function addText($text, $size, $x, $y, $rgb = self::COLOR_BLACK, $angle = 0, $font = '')
     {
         $color = $this->getColor($rgb);
         $fontfile = $this->getFont($font);
@@ -299,7 +299,7 @@ class Image
 
         $this->background = $rgb;
         $image = imagecreatetruecolor($width, $height);
-        $color = imagecolorallocate($image, $rgb[0], $rgb[1], $rgb[2]);
+        $color = imagecolorallocatealpha($image, $rgb[0], $rgb[1], $rgb[2], $rgb[3] ?? 0);
         imagefill($image, 0, 0, $color);
         $this->image = $image;
         $this->imageinfo = [
@@ -309,6 +309,74 @@ class Image
         ];
         return $this;
     }
+
+    /**
+     * 生成空白底图
+     *
+     * @param [type] $width
+     * @param [type] $height
+     * @param [type] $rgb
+     * @return void
+     * @author chentengfei
+     * @since
+     */
+    public function vacancy($width, $height)
+    {
+        $image = imagecreatetruecolor($width, $height);
+        $this->image = $image;
+        $this->imageinfo = [
+            'width' => $width,
+            'height' => $height,
+            'type' => 'png',
+        ];
+        return $this;
+    }
+
+    /**
+     * 旋转这张图
+     *
+     * @param [type] $width
+     * @param [type] $height
+     * @param [type] $rgb
+     * @return void
+     * @author chentengfei
+     * @since
+     */
+    public function rotate($angle, $rgba = [0,0,0,127])
+    {
+        $pngTransparency = imagecolorallocatealpha($this->image, $rgba[0], $rgba[1], $rgba[2], $rgba[3]);
+        $this->image = imagerotate($this->image, $angle, $pngTransparency);
+        $this->imageinfo = [
+            'width' => imagesx($this->image),
+            'height' => imagesy($this->image),
+            'type' => 'png',
+        ];
+        return $this;
+    }
+
+    /**
+     * 旋转这张图
+     *
+     * @param [type] $width
+     * @param [type] $height
+     * @param [type] $rgb
+     * @return void
+     * @author chentengfei
+     * @since
+     */
+    public function addImage($image, $x, $y, $w, $h, $pct = 100)
+    {
+        
+        $image2 = $image->image;
+        $image_thump = imagecreatetruecolor($w, $h);
+        //将原图复制带图片载体上面，并且按照一定比例压缩,极大的保持了清晰度
+        imagecopyresampled($image_thump, $image2, 0, 0, 0, 0, $w, $h, imagesx($image2), imagesy($image2));
+        imagedestroy($image2);
+        imagecopymerge($this->image, $image_thump, $x, $y, 0, 0, $w, $h, $pct);
+        return $this;
+    }
+
+
 
     /**
      * 添加圆角矩形浮层
@@ -583,7 +651,7 @@ class Image
      * @param array  $special 特殊处理字符
      * @param string $font 字体
      */
-    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb = self::COLOR_BLACK, $angle = 0, $special = [], $font = self::FONT_DEFAULT)
+    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb = self::COLOR_BLACK, $angle = 0, $special = [], $font = '')
     {
         $color = $this->getColor($rgb);
         $fontfile = $this->getFont($font);
@@ -960,7 +1028,7 @@ class Image
         if (is_string($rgb)) { // 颜色如果是16进制的话，先转成数组
             $rgb = $this->hex2rgb($rgb);
         }
-        return imagecolorallocatealpha($this->image, $rgb[0], $rgb[1], $rgb[2], 0);
+        return imagecolorallocatealpha($this->image, $rgb[0], $rgb[1], $rgb[2], $rgb[3] ?? 0);
     }
 
     /**
@@ -981,6 +1049,8 @@ class Image
         }
     }
 
+
+
     /**
      * 析构，释放图片句柄
      *
@@ -989,6 +1059,6 @@ class Image
      */
     public function __destruct()
     {
-        $this->image && imagedestroy($this->image);
+        
     }
 }

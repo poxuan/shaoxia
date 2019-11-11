@@ -11,7 +11,6 @@ class Media
         $argv  = func_get_args();
         $start = microtime(true);
         $image = new Image();
-        $pound = Image::px2pound(28); // px 长度转 pound 长度，用于字体
         $longTest  = "陈腾飞 坚持阅读【外刊阅读】12天\n正在和742526人一起学习";
         $longTest2 = "Chinese State Councilor and Foreign Minister Wang Yi";
         $longTest3 = "与需求结果不一致，但基本完成需求所需模块和扩展要求。倾斜文字加下划线错误";
@@ -47,8 +46,16 @@ class Media
             ['addLayer',80,1500,410,1546,23,Image::COLOR_WHITE],
             ['addText',"傻逼需求。。。", 26, 120 , 1535, Image::COLOR_RED, $angle ,'pingfang-slim'],
             ['addPic','./static/img/wechat.jpg',460,1340,220,220],
+            ['rotate',45]
         ];
         $image->make($steps);
+        $image2 = new Image();
+        $steps2 = [
+            ['whiteboard',750,1700],
+            ['addPic','./static/img/pic2.jpg',0,0,750,500],
+            ['addImage',$image,0,500,750,1200,66]
+        ];
+        $image2->make($steps2);
         // $image->whiteboard(750,1700) // 生成 750*1700 的白板
         //     ->addLayerShadow(50,430,700,570,20,[1,1]) // 添加一个圆角浮层,带阴影
         //     ->addPic('./static/img/pic2.jpg',0,0,750,500) // 在 左上角 添加 750*500 的图片
@@ -67,7 +74,7 @@ class Media
         //     ->addPic('./static/img/wechat.jpg',460,1340,220,220);
         $end = microtime(true);
         $filename = 'test-'.time().'.jpg';
-        $path = $image->saveImageLocal($filename,'jpeg');
+        $path = $image2->saveImageLocal($filename, 'png');
         return ['path' => $path,'time_cost' => intval(($end - $start) * 1000)." ms", 'mem_cost' => round(memory_get_usage() / 1024,2)." KB"];
     }
 
