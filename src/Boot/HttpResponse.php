@@ -16,14 +16,12 @@ class HttpResponse implements Response
     {
         $result = "";
         if (is_object($this->resource)) {
-            if ($this->resource instanceof Collection){
-                $result = $this->resource->toArray();
-            } elseif ($this->resource instanceof ArrayAccess) {
+            if ($this->resource instanceof \ArrayAccess) {
                 $result = (array) $this->resource;
-            } elseif ($this->resource instanceof Serializable) {
+            } elseif ($this->resource instanceof \Serializable) {
                 $result = $this->resource->serialize();
             } else {
-                $result = (string) $this->resource;
+                $result = $this->resource;
             }
         } else {
             $result = $this->resource;

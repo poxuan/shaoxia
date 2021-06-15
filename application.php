@@ -1,14 +1,23 @@
 <?php
 
+use Shaoxia\Boot\Request;
+use Shaoxia\Boot\Response;
+
 class application
 {
     private static $instance = null;
     private $clazz = null;
     private $func = null;
 
+    // 请求处理类
     private $request = null;
+    // 返回处理类
     private $response = null;
+    // 异常处理类
     private $handler = null;
+
+    // 绑定类
+    private $binded = [];
 
     private function __construct($clazz = '', $func = '', $is_cli = false)
     {
@@ -39,7 +48,7 @@ class application
     private function ini()
     {
         $this->alias();
-        
+        $this->ini_bind();
     }
 
     private function alias()
@@ -50,8 +59,22 @@ class application
         }
     }
 
+    public function bind($interface, $clazz)
+    {
+        $this->binded[$interface] = $clazz;
+    }
+
+    public function ini_bind()
+    {
+        $this->binded = [
+            Request::class => $this->request,
+            Response::class => $this->response,
+        ];
+    }
+
     public function exec()
     { 
+        
         try {
             if (!method_exists($this->clazz, $this->func)) {
                 throw new Exception("class mothod {$this->clazz}@{$this->func} not found");
@@ -59,7 +82,7 @@ class application
             $class = $this->ini_clazz($this->clazz);
             $params = $this->ini_param($class, $this->func);
             $result = call_user_func_array([$class, $this->func], $params);
-        } catch (Exception $exception) {
+        } catch (Throwable $exception) {
             $result = $this->handler ? $this->handler->render($this->request, $exception) : $exception->getMessage();
         }
         $this->response->resource($result)->output();
@@ -67,25 +90,19 @@ class application
 
     private function ini_clazz($clazz)
     {
+        
+        if ($c = $this->binded[$clazz] ?? null) {
+            if (is_object($c)) {
+                return $c;
+            }
+        }
         if (!class_exists($clazz)) {
             throw new Exception("class {$clazz} not found");
         }
         if (!method_exists($clazz, '__construct')) {
             return new $clazz();
         }
-        $method = new ReflectionMethod($clazz, '__construct');
-
-        $params = [];
-        foreach ($method->getParameters() as $param) {
-            $name = $param->getName();
-            $default = $param->getDefaultValue();
-            $clazz2 = $param->getClass();
-            if ($clazz2) {
-                $params[] = $this->ini_clazz($clazz2);
-            } else {
-                $params = $this->request->get($name, $default);
-            }
-        }
+        $params = $this->ini_param($clazz, '__construct');
         return call_user_func_array([$clazz, '__construct'], $params);
     }
 
@@ -93,13 +110,13 @@ class application
     {
         $method = new ReflectionMethod($clazz, $func);
         foreach ($method->getParameters() as $param) {
+            
             $name    = $param->getName();
-            $default = $param->getDefaultValue();
             $clazz2  = $param->getClass();
-            $type    = $param->getType();
             if ($clazz2) {
-                $params[] = $this->ini_clazz($clazz2);
+                $params[] = $this->ini_clazz($clazz2->getName());
             } else {
+                $default = $param->getDefaultValue() ?? null;
                 $params[] = $this->request->get($name, $default);
             }
         }

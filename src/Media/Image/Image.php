@@ -81,7 +81,7 @@ class Image
     /**
      * px宽度转为pound 宽度
      *
-     * @param [type] $px
+     * @param string|int $px
      * @return void
      * @author chentengfei
      * @since
@@ -282,9 +282,9 @@ class Image
     /**
      * 生成白板底图
      *
-     * @param [type] $width
-     * @param [type] $height
-     * @param [type] $rgb
+     * @param string|int $width
+     * @param string|int $height
+     * @param string|int $rgb
      * @return void
      * @author chentengfei
      * @since
@@ -313,9 +313,9 @@ class Image
     /**
      * 生成空白底图
      *
-     * @param [type] $width
-     * @param [type] $height
-     * @param [type] $rgb
+     * @param string|int $width
+     * @param string|int $height
+     * @param string|int $rgb
      * @return void
      * @author chentengfei
      * @since
@@ -335,9 +335,9 @@ class Image
     /**
      * 旋转这张图
      *
-     * @param [type] $width
-     * @param [type] $height
-     * @param [type] $rgb
+     * @param string|int $width
+     * @param string|int $height
+     * @param string|int $rgb
      * @return void
      * @author chentengfei
      * @since
@@ -357,9 +357,9 @@ class Image
     /**
      * 旋转这张图
      *
-     * @param [type] $width
-     * @param [type] $height
-     * @param [type] $rgb
+     * @param string|int $width
+     * @param string|int $height
+     * @param string|int $rgb
      * @return void
      * @author chentengfei
      * @since
@@ -498,12 +498,12 @@ class Image
     /**
      * 计算渐进终点
      *
-     * @param [type] $sx
-     * @param [type] $sy
-     * @param [type] $ex
-     * @param [type] $ey
-     * @param [type] $direction
-     * @return void
+     * @param string|int $sx
+     * @param string|int $sy
+     * @param string|int $ex
+     * @param string|int $ey
+     * @param string|int $direction
+     * @return array
      * @author chentengfei
      * @since
      */
@@ -533,13 +533,13 @@ class Image
     /**
      * 获取渐进点颜色
      *
-     * @param [type] $sx
-     * @param [type] $sy
-     * @param [type] $ex
-     * @param [type] $ey
-     * @param [type] $direction
-     * @param [type] $rgb1
-     * @param [type] $rgb2
+     * @param string|int $sx
+     * @param string|int $sy
+     * @param string|int $ex
+     * @param string|int $ey
+     * @param string|int $direction
+     * @param string|int $rgb1
+     * @param string|int $rgb2
      * @return void
      * @author chentengfei
      * @since
@@ -594,13 +594,13 @@ class Image
     /**
      * 检查一个点是否在浮层上
      *
-     * @param [type] $sx
-     * @param [type] $sy
-     * @param [type] $ex
-     * @param [type] $ey
-     * @param [type] $redius
-     * @param [type] $i
-     * @param [type] $j
+     * @param int $sx
+     * @param int $sy
+     * @param int $ex
+     * @param int $ey
+     * @param int $redius
+     * @param int $i
+     * @param int $j
      * @return void
      * @author chentengfei
      * @since
@@ -702,15 +702,15 @@ class Image
     /**
      * 特殊字符加颜色
      *
-     * @param [type] $word
-     * @param [type] $params
-     * @param [type] $cur_x
-     * @param [type] $cur_y
-     * @param [type] $size
-     * @param [type] $angle
-     * @param [type] $color
-     * @param [type] $fontfile
-     * @param [type] $box
+     * @param string|int $word
+     * @param string|int $params
+     * @param string|int $cur_x
+     * @param string|int $cur_y
+     * @param string|int $size
+     * @param string|int $angle
+     * @param string|int $color
+     * @param string|int $fontfile
+     * @param string|int $box
      * @return void
      * @author chentengfei
      * @since
@@ -724,15 +724,15 @@ class Image
     /**
      * 特殊字符换字体
      *
-     * @param [type] $word
-     * @param [type] $params
-     * @param [type] $cur_x
-     * @param [type] $cur_y
-     * @param [type] $size
-     * @param [type] $angle
-     * @param [type] $color
-     * @param [type] $fontfile
-     * @param [type] $box
+     * @param string|int $word
+     * @param string|int $params
+     * @param string|int $cur_x
+     * @param string|int $cur_y
+     * @param string|int $size
+     * @param string|int $angle
+     * @param string|int $color
+     * @param string|int $fontfile
+     * @param string|int $box
      * @return void
      * @author chentengfei
      * @since
@@ -746,15 +746,15 @@ class Image
     /**
      * 特殊字符加下划线
      *
-     * @param [type] $word
-     * @param [type] $params
-     * @param [type] $cur_x
-     * @param [type] $cur_y
-     * @param [type] $size
-     * @param [type] $angle
-     * @param [type] $color
-     * @param [type] $fontfile
-     * @param [type] $box
+     * @param string|int $word
+     * @param string|int $params
+     * @param string|int $cur_x
+     * @param string|int $cur_y
+     * @param string|int $size
+     * @param string|int $angle
+     * @param string|int $color
+     * @param string|int $fontfile
+     * @param string|int $box
      * @return void
      * @author chentengfei
      * @since
@@ -776,7 +776,7 @@ class Image
     /**
      * 按比例生成底图（文件体）
      *
-     * @param [type] $content
+     * @param string|int $content
      * @param integer $percent
      * @return void
      * @author chentengfei
@@ -793,7 +793,7 @@ class Image
     /**
      * 按比例生成底图（文件路径）
      *
-     * @param [type] $file
+     * @param string|int $file
      * @param integer $percent
      * @return void
      * @author chentengfei
@@ -811,8 +811,8 @@ class Image
     /**
      * 按固定尺寸生成底图（文件体）
      *
-     * @param [type] $content
-     * @param [type] $width
+     * @param string|int $content
+     * @param string|int $width
      * @param integer $height
      * @return void
      * @author chentengfei
@@ -828,8 +828,8 @@ class Image
     /**
      * 按固定尺寸生成底图（文件路径）
      *
-     * @param [type] $file
-     * @param [type] $width
+     * @param string|int $file
+     * @param string|int $width
      * @param integer $height
      * @return void
      * @author chentengfei
@@ -964,8 +964,8 @@ class Image
     /**
      * 存到七牛
      *
-     * @param [type] $dstImgName
-     * @param [type] $localName
+     * @param string|int $dstImgName
+     * @param string|int $localName
      * @return void
      * @author chentengfei
      * @since
@@ -988,7 +988,7 @@ class Image
     /**
      * 16进制颜色转数组
      *
-     * @param [type] $hexColor
+     * @param string|int $hexColor
      * @return void
      * @author chentengfei
      * @since
@@ -1018,8 +1018,8 @@ class Image
     /**
      * 获取一个颜色
      *
-     * @param [type] $rgb
-     * @return void
+     * @param string|int $rgb
+     * @return mixed
      * @author chentengfei
      * @since
      */
