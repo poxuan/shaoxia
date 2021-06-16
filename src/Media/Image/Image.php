@@ -2,26 +2,31 @@
 
 namespace Shaoxia\Media\Image;
 
+use Shaoxia\Media\Traits\ImageFont;
+use Shaoxia\Media\Traits\ImageSave;
+use Shaoxia\Media\Traits\ImageSpecial;
+
 /**
  * Class File
  * @package Common\Util
  */
 class Image
 {
+    use ImageSave,ImageSpecial,ImageFont;
+    // 源文件路径
     private $src;
+    // 图片句柄
     private $image;
+    // 图片二进制
     private $content;
+    // 图片信息
     private $imageinfo;
+    // 比例
     private $percent = 1;
-    private $savepath = './tmp/';
-    private $fontpath = './static/fonts/';
-    private $fontdefault = 'pingfang-standard';
+    // 背景色
     private $background = '#fff';
 
-    // 默认字体
-    const FONT_DEFAULT = 'pingfang-standard';
-
-    // 方向,可叠加使用
+    // 方位,可叠加使用
     const DIRE_CENTER = 15;
     const DIRE_LEFT   = 1;
     const DIRE_RIGHT  = 2;
@@ -34,49 +39,6 @@ class Image
     const COLOR_RED   = '#f00';
     const COLOR_GREEN = '#0f0';
     const COLOR_BLUE  = '#00f';
-
-    /**
-     * 获取目前支持的字体列表
-     *
-     * @return void
-     * @author chentengfei
-     * @since
-     */
-    public function getFontList()
-    {
-        $list = [];
-        $files = scandir($this->fontpath);
-        foreach ($files as $file) {
-            $ext = substr($file, -4);
-            if (($ext == '.ttf' || $ext == '.otf')) {
-                $name = substr($file, 0, strlen($file) - 4);
-                $list[$name] = [
-                    'name' => $name,
-                    'path' => $this->fontpath . $file,
-                ];
-            }
-        }
-        return $list;
-    }
-
-    /**
-     * 按名称获取字体文件
-     *
-     * @param string $name
-     * @return void
-     * @author chentengfei
-     * @since
-     */
-    public function getFont($name = '')
-    {
-        if (file_exists($this->fontpath . $name . '.otf')) {
-            return \realpath($this->fontpath . $name . '.otf');
-        } elseif (file_exists($this->fontpath . $name . '.ttf')) {
-            return \realpath($this->fontpath . $name . '.ttf');
-        } else {
-            return \realpath($this->fontpath . $this->fontdefault . '.ttf');
-        }
-    }
 
     /**
      * px宽度转为pound 宽度
@@ -141,9 +103,9 @@ class Image
         $fontfile = $this->getFont($font);
         // 如果支持type 2（opentype, otf后缀） 的话，优先用type 2 （type 2 是 type 1(truetype ttf 后缀) 的超集）
         if (function_exists('imagefttext')) {
-            $res = imagefttext($this->image, $size, $angle, $x, $y, $color, $fontfile, $text);
+            imagefttext($this->image, $size, $angle, $x, $y, $color, $fontfile, $text);
         } else { // 使用默认字体生成
-            $res = imagettftext($this->image, $size, $angle, $x, $y, $color, $fontfile, $text);
+            imagettftext($this->image, $size, $angle, $x, $y, $color, $fontfile, $text);
         }
         return $this;
     }
@@ -221,31 +183,31 @@ class Image
     /**
      * 添加水印
      * 
-     * @param int $position 1,左上,2,中上,3,右上,4,左中,5 中,6 右中
+     * @param int $position 方位
      * @param int $pct 覆盖度,0-100
      * @param string $waterImage 水印图(一个尺寸不大的png图片)
-     * @param int $padding 边距
+     * @param int $margin 外边距
      */
-    public function addWatar($position = 9, $pct = 50, $waterImage = '', $padding = 5)
+    public function addWatar($position = 9, $pct = 50, $waterImage = '', $margin = 5)
     {
-        list($waterWidth, $waterHeight, $type, $attr) = getimagesize($waterImage);
+        list($waterWidth, $waterHeight) = getimagesize($waterImage);
         $content = file_get_contents($waterImage);
         $image2 = imagecreatefromstring($content);
         $image_thump = imagecreatetruecolor($waterWidth, $waterHeight);
         // 图片比水印小则不加
-        if ($waterWidth + 2 * $padding > $this->imageinfo['width'] || $waterHeight + 2 * $padding > $this->imageinfo['width']) {
+        if ($waterWidth + 2 * $margin > $this->imageinfo['width'] || $waterHeight + 2 * $margin > $this->imageinfo['width']) {
             return $this;
         }
         switch ($position) {
             case 1:
-                $x = $y = $padding;
+                $x = $y = $margin;
                 break;
             case 2:
                 $x = ($this->imageinfo['width'] - $waterWidth) / 2;
                 $y = 5;
                 break;
             case 3:
-                $x = $this->imageinfo['width'] - $waterWidth - $padding;
+                $x = $this->imageinfo['width'] - $waterWidth - $margin;
                 $y = 5;
                 break;
             case 4:
@@ -257,20 +219,20 @@ class Image
                 $y = ($this->imageinfo['height'] - $waterHeight) / 2;
                 break;
             case 6:
-                $x = $this->imageinfo['width'] - $waterWidth - $padding;
+                $x = $this->imageinfo['width'] - $waterWidth - $margin;
                 $y = ($this->imageinfo['height'] - $waterHeight) / 2;
                 break;
             case 7:
-                $x = $padding;
-                $y = $this->imageinfo['height'] - $waterHeight - $padding;
+                $x = $margin;
+                $y = $this->imageinfo['height'] - $waterHeight - $margin;
                 break;
             case 8:
                 $x = ($this->imageinfo['width'] - $waterWidth) / 2;
-                $y = $this->imageinfo['height'] - $waterHeight - $padding;
+                $y = $this->imageinfo['height'] - $waterHeight - $margin;
                 break;
             case 9:
-                $x = $this->imageinfo['width'] - $waterWidth - $padding;
-                $y = $this->imageinfo['height'] - $waterHeight - $padding;
+                $x = $this->imageinfo['width'] - $waterWidth - $margin;
+                $y = $this->imageinfo['height'] - $waterHeight - $margin;
                 break;
         }
         imagecopyresampled($image_thump, $image2, 0, 0, 0, 0, $waterWidth, $waterHeight, $waterWidth, $waterHeight);
@@ -291,12 +253,10 @@ class Image
      */
     public function whiteboard($width, $height, $rgb = self::COLOR_WHITE)
     {
-
         if (is_string($rgb)) // 颜色字符转数组
         {
             $rgb = $this->hex2rgb($rgb);
         }
-
         $this->background = $rgb;
         $image = imagecreatetruecolor($width, $height);
         $color = imagecolorallocatealpha($image, $rgb[0], $rgb[1], $rgb[2], $rgb[3] ?? 0);
@@ -423,15 +383,15 @@ class Image
      */
     public function addLayerShadow($sx, $sy, $ex, $ey, $redius, $shadow)
     {
-        $h = $shadow[0] ?? 0;
-        $v = $shadow[1] ?? 0;
-        $blur = $shadow[2] ?? 5;
-        $color = $shadow[3] ?? '#888';
-        $this->addLayer($sx + $h, $sy + $v, $ex + $h, $ey + $v, $redius, $color);
+        $x = $shadow['offset_x'] ?? 0;
+        $y = $shadow['offset_y'] ?? 0;
+        $blur = $shadow['radius'] ?? 5;
+        $color = $shadow['color'] ?? "#888";
+        $this->addLayer($sx + $x, $sy + $y, $ex + $x, $ey + $y, $redius, $color);
         for ($i = $blur; $i > 0; $i--) {
             $radio = ($blur - $i) / ($blur + 1);
             $c = $this->getGradientColor($color, $this->background, $radio * $radio);
-            $this->addLayer($sx + $h - $i, $sy + $v - $i, $ex + $h + $i, $ey + $v + $i, $redius + $i, $c);
+            $this->addLayer($sx + $x - $i, $sy + $y - $i, $ex + $x + $i, $ey + $y + $i, $redius + $i, $c);
         }
         return $this;
     }
@@ -453,8 +413,6 @@ class Image
         if ($shadow) {
             $this->addLayerShadow($sx, $sy, $ex, $ey, $redius, $shadow);
         }
-        $width = $ex - $sx;
-        $height = $ey - $sy;
         $colors = $this->getGradientPointColor($sx, $sy, $ex, $ey, $direction, $rgb1, $rgb2);
         for ($i = $sx; $i < $ex; $i++) {
             for ($j = $sy; $j < $ey; $j++) {
@@ -474,11 +432,13 @@ class Image
      * @param string|array $from
      * @param string|array $to
      * @param integer $ratio
+     * @param bool $withAlpha
+     * @param 
      * @return void
      * @author chentengfei
      * @since
      */
-    public function getGradientColor($from, $to, $ratio = 1)
+    public function getGradientColor($from, $to, $ratio = 1, $withAlpha = true)
     {
         if (is_string($from)) // 颜色字符转数组
         {
@@ -492,7 +452,14 @@ class Image
         $r = round(abs($to[0] - abs($ratio * ($from[0] - $to[0]))));
         $g = round(abs($to[1] - abs($ratio * ($from[1] - $to[1]))));
         $b = round(abs($to[2] - abs($ratio * ($from[2] - $to[2]))));
-        return [$r, $g, $b];
+        if (isset($from[3]) && isset($to[3])) {
+            $alpha = round(abs($to[3] - abs($ratio * ($from[3] - $to[3]))));
+        } elseif ($withAlpha) {
+            $alpha = round((1-$ratio) * 127);
+        } else {
+            $alpha = 0;
+        }
+        return [$r, $g, $b, $alpha];
     }
 
     /**
@@ -566,14 +533,14 @@ class Image
                         $points[$i][$j] = $rgb2;
                     } else {
                         $ratio = $i > $to_x ? ($i - $to_x) / ($ex - $to_x) : ($to_x - $i) / ($to_x - $sx);
-                        $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio);
+                        $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio, false);
                     }
                 } elseif ($to_x == 0) {
                     if ($j == $to_y) {
                         $points[$i][$j] = $rgb2;
                     } else {
                         $ratio = $j > $to_y ? ($i - $to_y) / ($ey - $to_y) : ($to_y - $i) / ($to_y - $sy);
-                        $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio);
+                        $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio, false);
                     }
                 } else {
                     $x = abs($i - $to_x);
@@ -581,10 +548,7 @@ class Image
                     $hx = max($ex - $to_x, $to_x - $sx);
                     $hy = max($ey - $to_y, $to_y - $sy);
                     $ratio = sqrt(($x * $x + $y * $y) / ($hx * $hx + $hy * $hy));
-                    // if ($i == 50) {
-                    //     var_dump($x,$y,$hx,$hy,$ratio);
-                    // }
-                    $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio);
+                    $points[$i][$j] = $this->getGradientColor($rgb1, $rgb2, $ratio, false);
                 }
             }
         }
@@ -648,10 +612,10 @@ class Image
      * @param int|string $lineHeight 行高
      * @param string $glue 单词分隔符
      * @param array|string $rgb 颜色
-     * @param array  $special 特殊处理字符
      * @param string $font 字体
+     * @param array  $special 特殊处理字符
      */
-    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb = self::COLOR_BLACK, $angle = 0, $special = [], $font = '')
+    public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb = self::COLOR_BLACK, $angle = 0, $font = '',$special = [])
     {
         $color = $this->getColor($rgb);
         $fontfile = $this->getFont($font);
@@ -667,7 +631,7 @@ class Image
             $box = imageftbbox($size, $angle, $fontfile, $word . $glue);
             $box_width = sqrt(pow($box[2] + 1, 2) + pow($box[3] + 1, 2));
             if ($cur_width + $box_width < $width && $word != "\n") { //不换行
-                $this->addWord($word, $special, $cur_x, $cur_y, $size, $angle, $color, $fontfile);
+                $this->addWord($word, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $special);
                 $cur_x += $box_width * cos(deg2rad($angle));
                 $cur_y -= $box_width * sin(deg2rad($angle));
                 $cur_width += $box_width;
@@ -675,7 +639,7 @@ class Image
                 $line++;
                 $cur_x = $x + $lineHeight * $line * sin(deg2rad($angle));
                 $cur_y = $y + $lineHeight * $line * cos(deg2rad($angle));
-                $this->addWord($word, $special, $cur_x, $cur_y, $size, $angle, $color, $fontfile);
+                $this->addWord($word, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $special);
                 $cur_x += $box_width * cos(deg2rad($angle));
                 $cur_y -= $box_width * sin(deg2rad($angle));
                 $cur_width = $box_width;
@@ -684,7 +648,7 @@ class Image
         return $this;
     }
 
-    public function addWord($word, $special, $cur_x, $cur_y, $size, $angle, $color, $fontfile)
+    public function addWord($word, $cur_x, $cur_y, $size, $angle, $color, $fontfile, $special)
     {
         if (isset($special[$word])) {
             $specialType = $special[$word]['type'] ?? '';
@@ -697,80 +661,6 @@ class Image
         } else {
             imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile, $word);
         }
-    }
-
-    /**
-     * 特殊字符加颜色
-     *
-     * @param string|int $word
-     * @param string|int $params
-     * @param string|int $cur_x
-     * @param string|int $cur_y
-     * @param string|int $size
-     * @param string|int $angle
-     * @param string|int $color
-     * @param string|int $fontfile
-     * @param string|int $box
-     * @return void
-     * @author chentengfei
-     * @since
-     */
-    public function specialColor($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile)
-    {
-        $color2 = $this->getColor($params['color']);
-        imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color2, $fontfile, $word);
-    }
-
-    /**
-     * 特殊字符换字体
-     *
-     * @param string|int $word
-     * @param string|int $params
-     * @param string|int $cur_x
-     * @param string|int $cur_y
-     * @param string|int $size
-     * @param string|int $angle
-     * @param string|int $color
-     * @param string|int $fontfile
-     * @param string|int $box
-     * @return void
-     * @author chentengfei
-     * @since
-     */
-    public function specialFont($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile)
-    {
-        $fontfile2 = $this->getFont($params['font']);
-        imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile2, $word);
-    }
-
-    /**
-     * 特殊字符加下划线
-     *
-     * @param string|int $word
-     * @param string|int $params
-     * @param string|int $cur_x
-     * @param string|int $cur_y
-     * @param string|int $size
-     * @param string|int $angle
-     * @param string|int $color
-     * @param string|int $fontfile
-     * @param string|int $box
-     * @return void
-     * @author chentengfei
-     * @since
-     */
-    public function specialUnderline($word, $params, $cur_x, $cur_y, $size, $angle, $color, $fontfile)
-    {
-        $box = imageftbbox($size, $angle, $fontfile, $word);
-        $box_width = sqrt(pow($box[2] + 1, 2) + pow($box[3] + 1, 2));
-        $width = $params['width'] ?? 1;
-        $sx = $cur_x + $width * sin(deg2rad($angle));
-        $sy = $cur_y - $width * cos(deg2rad($angle));
-        $ex = $cur_x + $box_width * cos(deg2rad($angle)) + $width * sin(deg2rad($angle));
-        $ey = $cur_y - $box_width * sin(deg2rad($angle)) + $width * cos(deg2rad($angle));
-        // var_dump($sx,$sy,$ex,$ey);
-        $this->addLayer($sx, $sy, $ex, $ey, $width / 2, $params['color'] ?? '#fff');
-        imagefttext($this->image, $size, $angle, $cur_x, $cur_y, $color, $fontfile, $word);
     }
 
     /**
@@ -900,91 +790,7 @@ class Image
         return $this->image ? true : false;
     }
 
-    /**
-     * 本地存储
-     * 
-     * @param string $dstImgName 存储路径
-     * @param string $filetype 保存格式 png|jpeg
-     */
-    public function saveImageLocal($dstImgName, $filetype = "")
-    {
-        if (empty($dstImgName) || empty($this->image)) {
-            return false;
-        }
-
-        $allowImgs = ['.jpg', '.jpeg', '.png', '.bmp', '.wbmp', '.gif']; //如果目标图片名有后缀就用目标图片扩展名 后缀，如果没有，则用源图的扩展名
-        $dstExt = strrchr($dstImgName, ".");
-        $sourseExt = strrchr($this->src, ".");
-        if (!empty($dstExt)) {
-            $dstExt = strtolower($dstExt);
-        }
-
-        if (!empty($sourseExt)) {
-            $sourseExt = strtolower($sourseExt);
-        }
-
-        //有指定目标名扩展名
-        if (!empty($dstExt) && in_array($dstExt, $allowImgs)) {
-            $dstName = $dstImgName;
-        } elseif (!empty($sourseExt) && in_array($sourseExt, $allowImgs)) {
-            $dstName = $dstImgName . $sourseExt;
-        } else {
-            $dstName = $dstImgName . ($filetype ?: $this->imageinfo['type']);
-        }
-        $funcs = "image" . ($filetype ?: $this->imageinfo['type']);
-        $funcs($this->image, $this->savepath . $dstName);
-        return $this->savepath . $dstName;
-    }
-
-    /**
-     * 云端存储
-     *
-     * @param string $dstImgName 存储路径
-     * @param string $filetype   保存格式(png,jpeg)
-     * @param string $cloud      云名称
-     * @return string|boolean    图片位置,失败返回false
-     */
-    public function saveImageToCloud($dstImgName, $filetype = "", $cloud = "Qiniu")
-    {
-        if (empty($dstImgName)) {
-            return false;
-        }
-
-        // 保存到 tmp 临时目录下
-        $localName = $this->savepath . uniqid();
-        $funcs = "image" . ($filetype ?: $this->imageinfo['type']);
-        $res = $funcs($this->image, $localName);
-        if (!$res) {
-            return false;
-        }
-        $funcs = 'upload' . ucfirst($cloud);
-        return $this->$funcs($dstImgName, $localName);
-    }
-
-    /**
-     * 存到七牛
-     *
-     * @param string|int $dstImgName
-     * @param string|int $localName
-     * @return void
-     * @author chentengfei
-     * @since
-     */
-    protected function uploadQiniu($dstImgName, $localName)
-    {
-        $setting = config('qiniu');
-        $auth = new \Qiniu\Auth($setting['accessKey'], $setting['secretKey']);
-        $token = $auth->uploadToken($setting['bucket']);
-        $UploadManager = new \Qiniu\Storage\UploadManager();
-        $res = $UploadManager->putFile($token, $dstImgName, $localName, null, 'application/octet-stream', false);
-        @unlink($localName);
-        if (!empty($res[0]['key'])) {
-            return $setting['domain'] . $res[0]['key'];
-        } else {
-            return false;
-        }
-    }
-
+    
     /**
      * 16进制颜色转数组
      *
@@ -996,7 +802,14 @@ class Image
     public function hex2rgb($hexColor)
     {
         $color = str_replace('#', '', $hexColor);
-        if (strlen($color) > 3) {
+        if (strlen($color) == 8) { // 8位
+            $rgb = array(
+                hexdec(substr($color, 0, 2)),
+                hexdec(substr($color, 2, 2)),
+                hexdec(substr($color, 4, 2)),
+                hexdec(substr($color, 6, 2)),
+            );
+        } elseif (strlen($color) > 3) {
             $rgb = array(
                 hexdec(substr($color, 0, 2)),
                 hexdec(substr($color, 2, 2)),
