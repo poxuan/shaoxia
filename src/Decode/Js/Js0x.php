@@ -121,10 +121,11 @@ class Js0x {
             return $res;
         }, $r );
         
-        foreach($params as $key) {
+        foreach($params as $key) { // 忽略一些等值替换
             $r = str_replace(["$key = $key;","$key = $key\r\n"],'_ignore', $r);
             $r = str_replace("$key = $key,",'_ignore,', $r);
         }
+        return $r;
     }
 }
 
