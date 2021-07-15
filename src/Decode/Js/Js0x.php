@@ -3,10 +3,15 @@
 namespace Shaoxia\Decode\Js;
 
 class Js0x {
+    // 内容
     public $content = '';
+    // 替换数组
     public $replaceArr = [];
+    // 偏移量
     public $offset = 0;
+    // 计算公式
     public $formule = '';
+    // 目标值
     public $target = 0;
 
     function __construct($content) {
@@ -21,10 +26,10 @@ class Js0x {
         $offset = $target = 0;
         unset($lines[0]); //首行丢弃
         foreach($lines as $line) {
-            if (empty($offset) && strpos($line, '-')) { // 默认第一个减号后是目标值
+            if (empty($offset) && strpos($line, '-')) { // 默认第一个减号后是偏移量
                 $offset = hexdec(trim(explode("-", $line)[1]));
             }
-            if (empty($formule) && strpos($line, 'parseInt')) { // 默认第一处此方法是替换方法
+            if (empty($formule) && strpos($line, 'parseInt')) { // 默认第一处使用此方法是计算公式
                 $formule = trim($line);
             }
             if (empty($target) && strpos($line, '));')) { // 默认第一处 )); 的值是目标值
@@ -51,12 +56,18 @@ class Js0x {
         $this->resort();
     }
 
+    /**
+     * 获取数组结果
+     */
     public function getKey($key) {
         $x3b0e20 = $key - $this->offset;
         $x535640 = $this->replaceArr[$x3b0e20];
         return $x535640;
     }
 
+    /**
+     * 数组重排序
+     */
     public function resort() {
         while (true) {
             try {
@@ -74,21 +85,26 @@ class Js0x {
         }
     }
 
+    /**
+     * 处理
+     */
     public function resolve() {
+
+        // 先把16进制数转成二进制
         $r = preg_replace_callback("/([^a-z0-9_])0x([0-9a-f]*)/i", function ($item) {
             $d = hexdec(substr($item[0],1));
             return $item[1].$d;
         }, $this->constant);
-        
-        
+        // 从数组里替换值
         $r = preg_replace_callback("/_[a-z0-9]*\(([0-9]+)\)/i", function ($item) {
             $data = $this->getKey($item[1]);
             return $data ? "'$data'" : $item[0];
         }, $r );
         
         $p = 101;
-        
         $params = [];
+
+        // 替换参数和方法名
         $r = preg_replace_callback("/_0x([0-9a-f]+)/i", function ($item) use (&$params, &$r, &$p) {
             $key = $item[0];
             if (isset($params[$key])) {
