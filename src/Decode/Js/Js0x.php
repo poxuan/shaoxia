@@ -89,22 +89,19 @@ class Js0x {
      * 处理
      */
     public function resolve() {
-
-        // 先把16进制数转成二进制
+        // 16进制数赚10进制
         $r = preg_replace_callback("/([^a-z0-9_])0x([0-9a-f]*)/i", function ($item) {
             $d = hexdec(substr($item[0],1));
             return $item[1].$d;
         }, $this->constant);
-        // 从数组里替换值
+        // 替换值
         $r = preg_replace_callback("/_[a-z0-9]*\(([0-9]+)\)/i", function ($item) {
             $data = $this->getKey($item[1]);
             return $data ? "'$data'" : $item[0];
         }, $r );
-        
-        $p = 101;
+        $p = 1;
         $params = [];
-
-        // 替换参数和方法名
+        // 参数可读化
         $r = preg_replace_callback("/_0x([0-9a-f]+)/i", function ($item) use (&$params, &$r, &$p) {
             $key = $item[0];
             if (isset($params[$key])) {
@@ -112,24 +109,30 @@ class Js0x {
             } else {
                 $pattern = "/".$key." = ([^;,\?\(\]\)\s\{]+)/i";
                 // var_dump($pattern);die;
-                if (strpos($r, 'function '.$key)) {
-                    $res = 'f_' . $p++;
+                if (strpos($r, 'function '.$key)) { // 函数参数
+                    $res = 'f' . $p++;
                 } elseif (preg_match($pattern, $r, $match)) {
-                    
-                    if ($match[1][0] == '[') {
-                        $res = 'arr_' . $p++;
-                    } elseif (($px = strpos($match[1],'[')) > 0) {
+                    if ($match[1][0] == '[') { // 是数组
+                        $res = 'a' . $p++;
+                    } elseif (($px = strpos($match[1],'[')) > 0) { // 跟着数组操作
                         $res =  '_' . str_replace(['"',"'",], '', substr($match[1], $px + 1));
-                    } elseif (substr($match[1],0,3) == '_0x') {
+                        if (in_array($res, $params)) { // 已经出现过的, 在后面加数字区分
+                            $i = 1;
+                            do {
+                                $res1 = $res . '_' . ($i++);
+                            } while(in_array($res1, $params));
+                            $res = $res1;
+                        }
+                    } elseif (substr($match[1],0,3) == '_0x') { // 赋值操作参数名一致化
                         $key2 = $match[1];
-                        $res =  $params[$key2] ?? ('p_' . $p++);
-                    } elseif ($match[1] == 'function' || strpos($r, 'function '.$key)) {
-                        $res = 'f_' . $p++;
-                    }else {
-                        $res = 'p_' . $p++;
+                        $res =  isset($params[$key2]) ? "_". $params[$key2] : ('p' . $p++);
+                    } elseif ($match[1] == 'function' || strpos($r, 'function '.$key)) { // 有同名函数,函数参数
+                        $res = 'f' . $p++;
+                    } else {  // 其他赋值参数
+                        $res = 'p' . $p++;
                     }
-                } else {
-                    $res = 'c_' . $p++;
+                } else { // 不定参数
+                    $res = 'c' . $p++;
                 }
                 $params[$key] = $res;
                 // preg_match($pattern , $);
@@ -137,10 +140,13 @@ class Js0x {
             return $res;
         }, $r );
         
-        foreach($params as $key) { // 忽略一些等值替换
-            $r = str_replace(["$key = $key;","$key = $key\r\n"],'_ignore', $r);
-            $r = str_replace("$key = $key,",'_ignore,', $r);
-        }
+        // foreach($params as $key) {
+        //     $r = str_replace(["$key = $key;","$key = $key\r\n"],'_ignore', $r);
+        //     $r = str_replace("$key = $key,",'_ignore,', $r);
+        // }
+        
+        $r = preg_replace("/\['([a-z][a-z0-9]+)'\]/i", ".$1", $r); // 数组格式转成.格式
+
         return $r;
     }
 }
