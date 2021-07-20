@@ -92,8 +92,10 @@ class application
     {
         
         if ($c = $this->binded[$clazz] ?? null) {
-            if (is_object($c)) {
+            if (is_object($c)) { // 如果已经实例化,直接返回
                 return $c;
+            } elseif (class_exists($c)) { // 如果是个类名,转换传入值
+                $clazz = $c;
             }
         }
         if (!class_exists($clazz)) {

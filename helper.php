@@ -26,7 +26,7 @@ function getCf()
     global $argv;
     list($dc, $df) = explode('@', config('default_uri', 'Index@index'));
     if (is_cli()) {
-        $cf = explode('\\', $argv[1] ?? '');
+        $cf = explode('/', $argv[1] ?? '');
     } else {
         $cf = explode('/', explode('#', explode("?", str_replace('index.php', '', $_SERVER['REQUEST_URI']))[0])[0]);
     }

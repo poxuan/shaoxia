@@ -101,21 +101,23 @@ class Js0x {
         }, $r );
         $p = 1;
         $params = [];
+        $r = preg_replace("/\['([a-z][a-z0-9]+)'\]/i", ".$1", $r); // 数组格式转成.格式
         // 参数可读化
         $r = preg_replace_callback("/_0x([0-9a-f]+)/i", function ($item) use (&$params, &$r, &$p) {
             $key = $item[0];
             if (isset($params[$key])) {
                 $res = $params[$key];
             } else {
-                $pattern = "/".$key." = ([^;,\?\(\]\)\s\{]+)/i";
+                $pattern = "/".$key." = ([^;,'\"\?\(\[\]\)\s\{]+)/i";
                 // var_dump($pattern);die;
                 if (strpos($r, 'function '.$key)) { // 函数参数
                     $res = 'f' . $p++;
                 } elseif (preg_match($pattern, $r, $match)) {
                     if ($match[1][0] == '[') { // 是数组
                         $res = 'a' . $p++;
-                    } elseif (($px = strpos($match[1],'[')) > 0) { // 跟着数组操作
-                        $res =  '_' . str_replace(['"',"'",], '', substr($match[1], $px + 1));
+                    } elseif ((strpos($match[1],'.')) > 0) { // 对象的某个值
+                        $end = end(explode(".", $match[1]));
+                        $res =  '_' . $end;
                         if (in_array($res, $params)) { // 已经出现过的, 在后面加数字区分
                             $i = 1;
                             do {
@@ -135,18 +137,10 @@ class Js0x {
                     $res = 'c' . $p++;
                 }
                 $params[$key] = $res;
-                // preg_match($pattern , $);
             }
             return $res;
         }, $r );
         
-        // foreach($params as $key) {
-        //     $r = str_replace(["$key = $key;","$key = $key\r\n"],'_ignore', $r);
-        //     $r = str_replace("$key = $key,",'_ignore,', $r);
-        // }
-        
-        $r = preg_replace("/\['([a-z][a-z0-9]+)'\]/i", ".$1", $r); // 数组格式转成.格式
-
         return $r;
     }
 }
