@@ -114,7 +114,7 @@ class application
         foreach ($method->getParameters() as $param) {
             
             $name    = $param->getName();
-            $clazz2  = $param->getClass();
+            $clazz2  = $param->getDeclaringClass();
             if ($clazz2) {
                 $params[] = $this->ini_clazz($clazz2->getName());
             } else {

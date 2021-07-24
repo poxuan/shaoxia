@@ -4,6 +4,9 @@ namespace Shaoxia\Algorithm\Sort;
 
 
 class Selection implements Base {
+    public function desc(){
+        return "选择排序";
+    }
     public function sort($array) {
         $len = count($array);
         for ($i=0;$i < $len - 1;++$i) {

@@ -4,6 +4,11 @@ namespace Shaoxia\Algorithm\Sort;
 
 
 class Merge implements Base {
+
+    public function desc(){
+        return "归并排序";
+    }
+
     public function sort($array) {
         $len = count($array);
         $this->merge($array,0,$len - 1);

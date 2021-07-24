@@ -34,7 +34,7 @@ class CliRequest implements Request
                 if ($lv == 'null') {
                     $options[$key] = null;
                 } elseif ($lv == 'true' || $lv == 'false') {
-                    $options[$key] = $value;
+                    $options[$key] = $lv == 'true' ? true : false;
                 } elseif ($value[0] == '"' && $value[$le -1] == '"') {
                     $options[$key] = substr($value,1,$le-2);
                 }

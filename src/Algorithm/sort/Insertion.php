@@ -4,6 +4,11 @@ namespace Shaoxia\Algorithm\Sort;
 
 
 class Insertion implements Base {
+
+    public function desc(){
+        return "插入排序";
+    }
+
     public function sort($array) {
         $len = count($array);
         for ($i=1;$i<$len;++$i) {

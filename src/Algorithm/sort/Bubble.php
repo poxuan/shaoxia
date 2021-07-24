@@ -3,6 +3,11 @@
 namespace Shaoxia\Algorithm\Sort;
 
 class Bubble implements Base {
+
+    public function desc(){
+        return "冒泡排序";
+    }
+
     public function sort($array) {
         $len = count($array);
         for ($i=0;$i<$len - 1;$i++) {

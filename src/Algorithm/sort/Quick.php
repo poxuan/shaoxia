@@ -4,6 +4,9 @@ namespace Shaoxia\Algorithm\Sort;
 
 
 class Quick implements Base {
+    public function desc(){
+        return "快速排序";
+    }
     public function sort($array) {
         $len = count($array);
         $this->quick($array,0,$len - 1);
