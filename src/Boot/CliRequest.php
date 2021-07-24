@@ -44,7 +44,7 @@ class CliRequest implements Request
         return $options;
     }
 
-    public function hasOption($name) 
+    public function has($name) 
     {
         if (isset($this->options[$name])) {
             return true;
