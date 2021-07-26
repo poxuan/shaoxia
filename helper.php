@@ -1,6 +1,9 @@
 <?php
 
-$configs = require_once __DIR__ . '/config/config.php';
+use Shaoxia\Boot\Route;
+
+$configs = require __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config/route.php';
 
 function config($name = '', $default = null)
 {
@@ -25,20 +28,21 @@ function getCf()
 {
     global $argv;
     list($dc, $df) = explode('@', config('default_uri', 'Index@index'));
+    $pathParams = [];
     if (is_cli()) {
-        $cf = explode('/', $argv[1] ?? '');
+        $cf = Route::match($argv[1], 'get', $pathParams);
     } else {
-        $cf = explode('/', explode('#', explode("?", str_replace('index.php', '', $_SERVER['REQUEST_URI']))[0])[0]);
+        $uri = explode('#', explode("?", str_replace('index.php', '', $_SERVER['REQUEST_URI']))[0])[0];
+        $cf = Route::match($uri, $_SERVER['REQUEST_METHOD'],$pathParams);
     }
     $cf = array_values(array_filter($cf));
-    return [$cf[0] ?? $dc, $cf[1] ?? $df];
+    return [$cf[0] ?? $dc, $cf[1] ?? $df, $pathParams];
 }
 
 function myapplication()
 {
     require_once __DIR__ . '/application.php';
-    list($clazz, $func) = getCf();
-    return application::getInstance($clazz, $func, is_cli());
+    return application::getInstance(is_cli());
 }
 
 function myexplode(string $glue, string $str)
