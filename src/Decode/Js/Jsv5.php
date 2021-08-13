@@ -32,7 +32,7 @@ class Jsv5 {
     /**
      * 预处理
      */
-    public function preproccess($midFile, $url, $ul_id, $func_name = 'f6') {
+    public function preproccess($midFile, $url, $ul_id = "aaa", $func_name = 'f6') {
         $r = $this->resolve(false);
         preg_match_all("/{$func_name}\(\"([0-9]+)\", \"(.{4})\"\)/", $r, $matches);
         $chars = [];
@@ -41,11 +41,11 @@ class Jsv5 {
             $chars[intval($matches[1][$i])] = "[{$matches[1][$i]}, '{$matches[2][$i]}']";
         }
         ksort($chars);
-        $chars = implode(",\n", $chars);
-        $js = "var abc = [\n".$chars."];";
+        $chars = implode(",", $chars);
+        $js = "var preArr = [".$chars."];";
         $js .= <<<EOF
-        abc.forEach(function(element) {
-            $("#aaa").append("<li>"+element[0] + " %%% "+ {$func_name}(element[0], element[1]) + "</li>")
+        preArr.forEach(function(element) {
+            $("#{$ul_id}").append("<li>"+element[0] + " %%% "+ {$func_name}(element[0], element[1]) + "</li>")
         });
         EOF;
         $r .= $js;
