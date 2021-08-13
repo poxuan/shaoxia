@@ -8,7 +8,6 @@ class Media
 {
     public function image(int $angle = 0)
     {
-        $argv  = func_get_args();
         $start = microtime(true);
         $image = new Image();
         $longTest1  = "马化腾 坚持阅读【外刊阅读】12天\n正在和742526人一起学习";
@@ -45,6 +44,8 @@ class Media
             ['addLayer',80,1500,410,1536,18,Image::COLOR_WHITE],
             ['addText',"傻逼需求。。。", 20, 120 , 1530, Image::COLOR_RED, $angle ,'pingfang-slim'],
             ['addPic','./static/img/wechat.jpg',460,1340,220,220],
+
+            ['addRotateLayer',300,1500,200,100,45,18,Image::COLOR_RED],
         ];
         $image->make($steps);
         

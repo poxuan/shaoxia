@@ -11,8 +11,9 @@
     ],
     "require": {
         "php": ">=7.0.0",
-        "ext-gd2": "*",
-        "qiniu/php-sdk": "^7.2"
+        "ext-gd": "*",
+        "qiniu/php-sdk": "^7.2",
+        "facebook/webdriver": "^1.7"
     },
     "autoload": {
         "psr-4": {

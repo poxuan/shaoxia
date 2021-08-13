@@ -44,7 +44,7 @@ class Image
      * px宽度转为pound 宽度
      *
      * @param string|int $px
-     * @return void
+     * @return int
      * @author chentengfei
      * @since
      */
@@ -96,6 +96,7 @@ class Image
      * @param array|string  $rgb  颜色RGB数组或16进制
      * @param int    $angle 角度
      * @param string $font 字体文件位置
+     * @return self
      */
     public function addText($text, $size, $x, $y, $rgb = self::COLOR_BLACK, $angle = 0, $font = '')
     {
@@ -119,6 +120,7 @@ class Image
      * @param int    $dst_width     目标图片宽度,不设为原图
      * @param int    $dst_height    目标图片高度,不设是按宽度等比例
      * @param int    $pct  合并程度
+     * @return self
      */
     public function addPic($path, $x, $y, $dst_width = 0, $dst_height = 0, $pct = 100)
     {
@@ -149,6 +151,7 @@ class Image
      * @param int    $y    圆心Y
      * @param int    $r    半径
      * @param int    $pct  合并程度
+     * @return self
      */
     public function addCriclePic($path, $x, $y, $r, $pct = 100)
     {
@@ -187,6 +190,7 @@ class Image
      * @param int|array $position 位置
      * @param int $pct 覆盖度,0-100
      * @param int $margin 外边距
+     * @return self
      */
     public function addWatar($path = '', $position = 9, $pct = 50, $margin = 5)
     {
@@ -253,7 +257,7 @@ class Image
      * @param string|int $width
      * @param string|int $height
      * @param string|int $rgb
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
@@ -282,13 +286,15 @@ class Image
      * @param string|int $width
      * @param string|int $height
      * @param string|int $rgb
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
     public function vacancy($width, $height)
     {
-        $image = imagecreatetruecolor($width, $height);
+        $image = imagecreatetruecolor($width,$height);
+        $color = imagecolorallocatealpha($image, 255, 255, 255, 127);
+        imagefill($image, 0, 0, $color);
         $this->image = $image;
         $this->imageinfo = [
             'width' => $width,
@@ -304,14 +310,15 @@ class Image
      * @param string|int $width
      * @param string|int $height
      * @param string|int $rgb
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
-    public function rotate($angle, $rgba = [0,0,0,127])
+    public function rotate($angle, $rgba = [255,255,255,127])
     {
         $pngTransparency = imagecolorallocatealpha($this->image, $rgba[0], $rgba[1], $rgba[2], $rgba[3]);
-        $this->image = imagerotate($this->image, $angle, $pngTransparency);
+
+        $this->image = imagerotate($this->image, $angle, $pngTransparency, true);
         $this->imageinfo = [
             'width' => imagesx($this->image),
             'height' => imagesy($this->image),
@@ -321,7 +328,7 @@ class Image
     }
 
     /**
-     * 叠加一张图片
+     * 叠加一个Image实例
      * 
      * @param Image $image;
      * @param string|int $x 位置X
@@ -333,15 +340,9 @@ class Image
      * @author chentengfei
      * @since
      */
-    public function addImage($image, $x, $y, $w, $h, $pct = 100)
+    public function addImage($image, $x, $y, $w, $h)
     {
-        
-        $image2 = $image->image;
-        $image_thump = imagecreatetruecolor($w, $h);
-        //将原图复制带图片载体上面，并且按照一定比例压缩,极大的保持了清晰度
-        imagecopyresampled($image_thump, $image2, 0, 0, 0, 0, $w, $h, imagesx($image2), imagesy($image2));
-        imagedestroy($image2);
-        imagecopymerge($this->image, $image_thump, $x, $y, 0, 0, $w, $h, $pct);
+        imagecopy($this->image, $image->image, $x, $y, 0, 0, $w, $h);
         return $this;
     }
 
@@ -357,6 +358,7 @@ class Image
      * @param int $redius 圆角
      * @param string|array $rgb  起始颜色
      * @param array $shadow  阴影
+     * @return self
      */
     public function addLayer($sx, $sy, $ex, $ey, $redius = 0, $rgb = self::COLOR_WHITE, $shadow = [])
     {
@@ -378,6 +380,34 @@ class Image
     }
 
     /**
+     * 添加经过旋转的浮层
+     *
+     * @param int $center_x 中心点X
+     * @param int $center_y 中心点Y
+     * @param int $x 长
+     * @param int $y 宽
+     * @param int $angle
+     * @param int $redius 圆角
+     * @param string|array $rgb  背景颜色
+     * @param array $shadow  阴影
+     * @return self
+     */
+    public function addRotateLayer($center_x, $center_y, $x, $y, $angle, $redius = 0, $rgb = self::COLOR_WHITE, $shadow = [])
+    {
+        $new_image = new self;
+        $new_image->vacancy($x, $y)
+        ->addLayer(0, 0, $x, $y, $redius, $rgb , $shadow)
+        ->rotate($angle);
+        $new_image_info = $new_image->getImageInfo();
+        $new_width = $new_image_info['width'];
+        $new_height = $new_image_info['height'];
+        $sx = $center_x - intval($new_width/2);
+        $sy = $center_y - intval($new_height/2);
+        $this->addImage($new_image, $sx, $sy, $new_width, $new_height,99);
+        return $this;
+    }
+
+    /**
      * 添加阴影
      *
      * @param int $sx
@@ -386,7 +416,7 @@ class Image
      * @param int $ey
      * @param int $redius
      * @param array $shadow
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
@@ -416,6 +446,7 @@ class Image
      * @param string|array $rgb1  起始颜色
      * @param string|array $rgb2  目标颜色
      * @param int|array $direction 方向或目标点
+     * @return self
      */
     public function addGradientLayer($sx, $sy, $ex, $ey, $redius = 0, $rgb1 = self::COLOR_WHITE, $rgb2 = self::COLOR_BLACK, $direction = self::DIRE_RIGHT, $shadow = [])
     {
@@ -443,7 +474,7 @@ class Image
      * @param integer $ratio
      * @param bool $withAlpha
      * @param 
-     * @return void
+     * @return array
      * @author chentengfei
      * @since
      */
@@ -516,7 +547,7 @@ class Image
      * @param string|int|array $direction
      * @param string|int $rgb1
      * @param string|int $rgb2
-     * @return void
+     * @return array
      * @author chentengfei
      * @since
      */
@@ -574,7 +605,7 @@ class Image
      * @param int $redius
      * @param int $i
      * @param int $j
-     * @return void
+     * @return boolean
      * @author chentengfei
      * @since
      */
@@ -623,6 +654,7 @@ class Image
      * @param array|string $rgb 颜色
      * @param string $font 字体
      * @param array  $special 特殊处理字符
+     * @return self
      */
     public function addLongText($text, $size, $x, $y, $width, $lineHeight = 'auto', $glue = ' ', $rgb = self::COLOR_BLACK, $angle = 0, $font = '',$special = [])
     {
@@ -677,7 +709,7 @@ class Image
      *
      * @param string|int $content
      * @param integer $percent
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
@@ -694,7 +726,7 @@ class Image
      *
      * @param string|int $file
      * @param integer $percent
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
@@ -713,7 +745,7 @@ class Image
      * @param string|int $content
      * @param string|int $width
      * @param integer $height
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
@@ -730,7 +762,7 @@ class Image
      * @param string|int $file
      * @param string|int $width
      * @param integer $height
-     * @return void
+     * @return self
      * @author chentengfei
      * @since
      */
@@ -790,7 +822,7 @@ class Image
     /**
      * 检查有没有图片句柄
      *
-     * @return void
+     * @return boolean
      * @author chentengfei
      * @since
      */
@@ -1035,6 +1067,14 @@ class Image
     }
 
 
+    /**
+     * 获取图片信息
+     * 
+     * @return array
+     */
+    public function getImageInfo() {
+        return $this->imageinfo;
+    }
 
     /**
      * 析构，释放图片句柄
