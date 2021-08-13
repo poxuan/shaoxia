@@ -50,7 +50,7 @@ class Jsv5 {
         file_put_contents($midFile, $r);
         // 打开文件,获取参数对应关系
         $chrome = new Chrome();
-        $data = $chrome->url($url)->findById($ul_id);
+        $data = $chrome->url($url)->findById($ul_id)->getText();
         $lines = explode("\n", $data);
         foreach($lines as $line) {
             list($i, $val) = explode(" %%% ", $line);
