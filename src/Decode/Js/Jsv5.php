@@ -41,16 +41,14 @@ class Jsv5 {
             $chars[intval($matches[1][$i])] = "[{$matches[1][$i]}, '{$matches[2][$i]}']";
         }
         ksort($chars);
+        // 结尾添加一段js
         $chars = implode(",", $chars);
-        $js = "var preArr = [".$chars."];";
-        $js .= <<<EOF
-        preArr.forEach(function(element) {
-            $("#{$ul_id}").append("<li>"+element[0] + " %%% "+ {$func_name}(element[0], element[1]) + "</li>")
-        });
-        EOF;
-        $r .= $js;
-        // 中间文件
+        $js  = "var preArr = [".$chars."];";
+        $js .= 'preArr.forEach(function(el) {$("#'.$ul_id.'").append("<li>"+el[0] + " %%% "+ '.$func_name.'(el[0], el[1]) + "</li>")});';
+        $r  .= $js;
+        // 保存为中间文件
         file_put_contents($midFile, $r);
+        // 打开文件,获取参数对应关系
         $chrome = new Chrome();
         $data = $chrome->url($url)->findById($ul_id);
         $lines = explode("\n", $data);
@@ -60,22 +58,25 @@ class Jsv5 {
         }
     }
 
+    // 获取替换值
     public function getKey($i) {
-        $x535640 = $this->replaceArr[$i];
+        $x535640 = $this->replaceArr[$i] ?? null;
         return $x535640;
     }
 
     /**
-     * 处理结果
+     * 处理获取结果
      */
     public function resolve($replace = true) {
         
+        // 替换16进制数
         $r = preg_replace_callback("/([^a-z0-9_])0x([0-9a-f]*)/i", function ($item) {
             $d = hexdec(substr($item[0],1));
             return $item[1].$d;
         }, $this->constant);
 
-        if ($replace) { // 替换方法
+        if ($replace) { 
+            // 替换加密值
             $r = preg_replace_callback("/_[a-z0-9]*\(\"([0-9]+)\", \"(.{4})\"\)/i", function ($item) {
                 $data = $this->getKey($item[1]);
                 if (strpos($data, "'") !== false) {
@@ -84,8 +85,10 @@ class Jsv5 {
                     return $data ? "'$data'" : $item[0];
                 }
             }, $r);
+            // []格式替换为.格式
             $r = preg_replace("/\[\"([a-z][a-z0-9]*)\"\]/i", ".$1", $r);
             $r = preg_replace("/\['([a-z][a-z0-9]*)'\]/i", ".$1", $r);
+            // 混淆对象替换
             preg_match_all('/var ([_a-z0-9]+) = \{/i', $r, $matches);
             foreach($matches[0] as $key => $match) {
                 $firstKey = $matches[1][$key];
@@ -94,16 +97,15 @@ class Jsv5 {
                 $substr = substr($r, $start, $end - $start);
                 $lines = array_map('trim', explode("\n", $substr));
                 foreach($lines as $i => $line) {
-                    if (preg_match("/^([_a-z0-9]+): ('[^']+'),$/i", $line, $mat)) {
-                        
+                    if (preg_match("/^([_a-z0-9]+): ('[^']+'),$/i", $line, $mat)) { // 字符串替换
                         $secondKey = $mat[1];
                         $val = $mat[2];
                         $r = str_replace("{$firstKey}.{$secondKey}", $val, $r);
-                    } elseif (preg_match("/^([_a-z0-9]+): (\"[^\"]+\"),$/i", $line, $mat)) {
+                    } elseif (preg_match("/^([_a-z0-9]+): (\"[^\"]+\"),$/i", $line, $mat)) { // 字符串替换
                         $secondKey = $mat[1];
                         $val = $mat[2];
                         $r = str_replace("{$firstKey}.{$secondKey}", $val, $r);
-                    } elseif (preg_match("/^([_a-z0-9]+): function ([_a-z0-9]+)\(([^\)]*)\) \{$/i", $line, $mat)) {
+                    } elseif (preg_match("/^([_a-z0-9]+): function ([_a-z0-9]+)\(([^\)]*)\) \{$/i", $line, $mat)) { // 函数替换
                         $secondKey = $mat[1];
                         $params = explode("," ,$mat[2]);
                         if (strpos($lines[$i+1], '(')) {
@@ -123,6 +125,7 @@ class Jsv5 {
 
         $p = 1;
         $params = [];
+        // 参数可读化
         $r = preg_replace_callback("/_0x([0-9a-f]+)/i", function ($item) use (&$params, &$r, &$p) {
             $key = $item[0];
             if (isset($params[$key])) {
