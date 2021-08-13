@@ -58,7 +58,7 @@ class Chrome
     public function findBy($type, $str, $multi = false) {
         $driverBy = $this->_makeDirver($type, $str);
         try {
-            if ($multi) {
+            if (!$multi) {
                 $element = $this->driver->findElement($driverBy);
                 return $element;
             } else {
