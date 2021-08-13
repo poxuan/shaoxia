@@ -19,10 +19,10 @@ class Chrome
     const TYPE_SELECTOR = 'cssSelector';
     const TYPE_XPATH = 'xpath';
 
-    public function __construct()
+    public function __construct($host = null)
     {
         try {
-            $this->driver = RemoteWebDriver::create($this->host, DesiredCapabilities::chrome(), 50000);
+            $this->driver = RemoteWebDriver::create($host ?: $this->host, DesiredCapabilities::chrome(), 50000);
         } catch(\Throwable $t) {
             echo $t->getLine() . $t->getMessage()."\n";
         }
