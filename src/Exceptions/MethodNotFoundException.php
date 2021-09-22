@@ -6,7 +6,7 @@ namespace Shaoxia\Exceptions;
  * Class File
  * @package Shaoxia\Exceptions
  */
-class CustomException extends \Exception
+class MethodNotFoundException extends \Exception
 {
-    protected $code = 500;
+    protected $code = 404;
 }

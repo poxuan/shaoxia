@@ -660,7 +660,7 @@ class Image
     {
         $color = $this->getColor($rgb);
         $fontfile = $this->getFont($font);
-        $words = myexplode($glue, $text);
+        $words = $this->myexplode($glue, $text);
         $cur_x = $x;
         $cur_y = $y;
         $line = 0;

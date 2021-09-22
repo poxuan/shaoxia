@@ -10,3 +10,5 @@ Route::get("image/{angle}", "Media@image");
 
 // resource路由
 Route::resource("media", "Media");
+
+Route::get("storage/db_test", "Storage@db_test");

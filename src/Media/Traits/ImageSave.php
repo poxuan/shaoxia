@@ -8,19 +8,20 @@ namespace Shaoxia\Media\Traits;
  */
 trait ImageSave
 {
-    private $savepath = './tmp/';
+    public $savepath = './tmp';
     /**
      * 本地存储
      * 
      * @param string $dstImgName 存储路径
      * @param string $filetype 保存格式 png|jpeg
      */
-    public function saveImageLocal($dstImgName, $filetype = "")
+    public function saveImageLocal($dstImgName, $filetype = "", $savepath = '')
     {
         if (empty($dstImgName) || empty($this->image)) {
             return false;
         }
 
+        $savepath = $savepath ? : $this->savepath;
         $allowImgs = ['.jpg', '.jpeg', '.png', '.bmp', '.wbmp', '.gif']; //如果目标图片名有后缀就用目标图片扩展名 后缀，如果没有，则用源图的扩展名
         $dstExt = strrchr($dstImgName, ".");
         $sourseExt = strrchr($this->src, ".");
@@ -41,8 +42,8 @@ trait ImageSave
             $dstName = $dstImgName . ($filetype ?: $this->imageinfo['type']);
         }
         $funcs = "image" . ($filetype ?: $this->imageinfo['type']);
-        $funcs($this->image, $this->savepath . $dstName);
-        return $this->savepath . $dstName;
+        $funcs($this->image, $savepath .DS. $dstName);
+        return $savepath .DS. $dstName;
     }
 
     /**
@@ -59,8 +60,8 @@ trait ImageSave
             return false;
         }
 
-        // 保存到 tmp 临时目录下
-        $localName = $this->savepath . uniqid();
+        // 临时保存到 tmp 目录下
+        $localName = $this->savepath .DS. uniqid();
         $funcs = "image" . ($filetype ?: $this->imageinfo['type']);
         $res = $funcs($this->image, $localName);
         if (!$res) {

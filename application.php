@@ -2,65 +2,94 @@
 
 use Shaoxia\Boot\Request;
 use Shaoxia\Boot\Response;
-use Shaoxia\Exceptions\CustomException;
+use Shaoxia\Boot\Route;
+use Shaoxia\Exceptions\MethodNotFoundException;
+use Shaoxia\Exceptions\RouteNotMatchException;
 
 class application
 {
     private static $instance = null;
-    private $clazz = null;
-    private $func = null;
-    private $pathParams = [];
-
+    
+    private $is_cli = false;
+    // 初始化配置数组，在 /config/app.php 中配置
+    private $iniConfig = [];
     // 请求处理类
     private $request = null;
     // 返回处理类
     private $response = null;
     // 异常处理类
     private $handler = null;
-
-    // 绑定类
+    // 绑定关系
     private $binded = [];
+    // 全局中间件
+    private $middleware = [];
+    // 路由结果
+    private $clazz = null;    // 最终执行类
+    private $func = null;     // 最终执行方法
+    private $pathParams = []; // 路径中参数
+    private $routeMiddleware = []; // 路由中间件
 
-    private function __construct($clazz = '', $func = '', $pathParams = [])
+    private function __construct($is_cli)
     {
-        if (is_cli()) {
+        $this->ini();
+        if ($is_cli) {
+            $this->is_cli = true;
             $this->request = new Shaoxia\Boot\CliRequest();
             $this->response = new Shaoxia\Boot\CliResponse();
         } else {
             $this->request = new Shaoxia\Boot\HttpRequest();
             $this->response = new Shaoxia\Boot\HttpResponse();
         }
-        $this->ini();
-        $this->clazz = $clazz;
-        $this->func  = $func;
-        $this->pathParams  = $pathParams;
+        // 绑定请求处理类
+        $this->binded[Request::class] = $this->request;
+        $this->binded[Response::class] = $this->response;
     }
 
-    public static function getInstance()
+    // 单例
+    public static function getInstance($is_cli = true)
     {
         if (!self::$instance) {
-            list($clazz, $func, $pathParams) = getCf();
-            self::$instance = new self($clazz, $func, $pathParams);
+            self::$instance = new self($is_cli);
         }
         return self::$instance;
     }
 
+    // 防止克隆
     public function __clone() {
 
     }
 
+    // 初始化
     private function ini()
     {
-        $this->alias();
+        $this->iniConfig = config('', [], 'app');
+        $this->ini_alias();
         $this->ini_bind();
+        $this->ini_route();
+        $this->ini_middleware();
     }
 
-    private function alias()
+    private function ini_alias()
     {
-        foreach (config('alias') as $alias => $clazz) {
+        foreach ($this->iniConfig['alias'] as $alias => $clazz) {
             class_alias($clazz, $alias);
             class_uses($alias);
         }
+    }
+
+    private function ini_bind()
+    {
+        $this->binded = $this->iniConfig['bindings'] ?? [];
+    }
+
+    private function ini_middleware()
+    {
+        $this->middleware = $this->iniConfig['middleware'] ?? [];
+    }
+
+    private function ini_route() 
+    {
+        require_once CONFIG_PATH . '/route.php';
     }
 
     public function bind($interface, $clazz)
@@ -68,28 +97,104 @@ class application
         $this->binded[$interface] = $clazz;
     }
 
-    public function ini_bind()
+    public function alias($alias, $clazz)
     {
-        $this->binded = [
-            Request::class => $this->request,
-            Response::class => $this->response,
-        ];
+        class_alias($clazz, $alias);
+        class_uses($alias);
     }
 
+        /**
+     * 解析控制器和方法名
+     */
+    protected function parse_path()
+    {
+        $pathParams = $routeMiddleware = [];
+        $uri = $this->is_cli ? cli_uri() : $_SERVER['REQUEST_URI'];
+        $method =  $this->is_cli ? 'GET' : $_SERVER['REQUEST_METHOD'];
+        $path = explode('#', explode("?", ltrim($uri,'/'))[0])[0];
+        if ($path) {
+            // 解析出对应类名、方法名、路由参数、中间件
+            $cf = Route::match($path, $method, $pathParams, $routeMiddleware);
+            if ($cf) {
+                $this->clazz = $cf[0];
+                $this->func  = $cf[1];
+                if (!method_exists($this->clazz, $this->func)) {
+                    throw new MethodNotFoundException("class mothod {$this->clazz}@{$this->func} not found");
+                }
+                $this->pathParams  = $pathParams;
+                $this->setRouteMiddleware($routeMiddleware);
+                return true;
+            }
+        }
+        throw new RouteNotMatchException("路由{$path}无法识别!!!");
+    }
+
+    public function getResponse() {
+        return $this->response;
+    }
+
+    public function getRequest() {
+        return $this->request;
+    }
+
+    protected function setRouteMiddleware($arr) {
+        $arr = is_array($arr) ? $arr : [$arr];
+        foreach($arr as $key) {
+            // 别名替换成类名
+            $this->routeMiddleware[] = $this->iniConfig['route_middlewares'][$key];
+        }
+    }
+
+    /**
+     * 执行请求
+     */
     public function exec()
     { 
-        
         try {
-            if (!method_exists($this->clazz, $this->func)) {
-                throw new Exception("class mothod {$this->clazz}@{$this->func} not found");
-            }
-            $class = $this->ini_clazz($this->clazz);
-            $params = $this->ini_param($class, $this->func, true);
-            $result = call_user_func_array([$class, $this->func], $params);
+            // 解析路径
+            $this->parse_path();
+            // 执行中间件
+            $this->run_middleware();
+            // 执行结果
+            $result = $this->handle();
         } catch (Throwable $exception) {
             $result = $this->handler ? $this->handler->render($this->request, $exception) : $exception->getMessage();
         }
         $this->response->resource($result)->output();
+    }
+
+    // 最终执行方法
+    protected function handle() {
+        $class = $this->ini_clazz($this->clazz);
+        $params = $this->ini_param($class, $this->func, true);
+        return call_user_func_array([$class, $this->func], $params);
+    }
+
+
+    // 依次执行中间件
+    protected function run_middleware()
+    {
+        $stack = array_merge($this->middleware, $this->routeMiddleware);
+        if ($stack) {
+            $pipeline = array_reduce(
+                array_reverse($stack),
+                $this->carry()
+            );
+            $pipeline($this->request);
+        }
+    }
+    
+    protected function carry()
+    {
+        return function ($stack, $pipe) {
+            return function ($passable) use ($stack, $pipe) {
+                if (is_string($pipe) && class_exists($pipe)) {
+                    $pipe = $this->ini_clazz($pipe);
+                }
+                $parameters = [$passable, $stack];
+                return $pipe->handle(...$parameters);
+            };
+        };
     }
 
     private function ini_clazz($clazz)
@@ -102,7 +207,7 @@ class application
             }
         }
         if (!class_exists($clazz)) {
-            throw new Exception("class {$clazz} not found");
+            throw new MethodNotFoundException("class {$clazz} not found");
         }
         if (!method_exists($clazz, '__construct')) {
             return new $clazz();
@@ -120,7 +225,7 @@ class application
             if ($clazz2) {
                 $params[] = $this->ini_clazz($clazz2->getName());
             } elseif ($param->isPassedByReference()) {
-                throw new Exception("class {$clazz} methed {$func} params {$name} is reference");
+                throw new MethodNotFoundException("class {$clazz} methed {$func} params {$name} is reference");
             } elseif ($is_path && isset($this->pathParams[$name])) {
                 $params[] = $this->pathParams[$name];
             } else {
