@@ -7,7 +7,7 @@ namespace Shaoxia\Common;
  * @author xiaogg <xiaogg@sina.cn>
  */
 class JsonDB{
-    private $dbpath='./data/';
+    private $dbpath='.';
     private $dat_path;
     public $data_type =0;//自动分表类型
     public $data_length =1;//数据分表长度
@@ -16,7 +16,8 @@ class JsonDB{
      * 初始化打开数据库
      * @param $dbname 数据文件的存放路径
      */
-    public function __construct($dbname=''){
+    public function __construct($dbname='', $dbpath = ''){
+        if ($dbpath) $this->dbpath = $dbpath;
         return $this->open($dbname);
     }
     /**
@@ -27,7 +28,7 @@ class JsonDB{
     public function open($dbname='',$id=''){
         if(empty($dbname))return false;
         $dbname=$this->data_type?$this->getTable($dbname,$id):$dbname;
-        $this->dat_path = $this->dbpath.$dbname.'.json';return true;        
+        $this->dat_path = $this->dbpath.DS.$dbname.'.json';return true;        
     }
     /**
      * 添加数据 初始化时建议采用

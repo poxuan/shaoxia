@@ -11,4 +11,9 @@ Route::get("image/{angle}", "Media@image");
 // resource路由
 Route::resource("media", "Media");
 
-Route::get("storage/db_test", "Storage@db_test");
+Route::get("bdb/insert", "Filedb@bdb_insert");
+Route::get("bdb/find", "Filedb@bdb_find");
+Route::get("cdb/insert", "Filedb@cdb_insert");
+Route::get("cdb/find", "Filedb@cdb_find");
+Route::get("jdb/insert", "Filedb@jdb_insert");
+Route::get("jdb/find", "Filedb@jdb_find");

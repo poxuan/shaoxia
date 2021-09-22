@@ -16,11 +16,6 @@ class Index
      */
     private $index;
 
-    /**
-     * @var Data
-     *
-     * 索引指向的具体数据,在叶节点中该属性才有值
-     */
     private $data;
 
     /**
@@ -30,11 +25,11 @@ class Index
      */
     private $next;
 
-    public function __construct($index = 0, $next = 0, Data $data = null)
+    public function __construct($index = 0, $next = 0, $data = null)
     {
         $this->index = $index;
         $this->next = $next;
-        $this->data = $data;
+        $this->data = $data instanceof Data ? $data->toArray() : $data;
     }
 
     public function getIndex()
@@ -48,7 +43,7 @@ class Index
     }
 
     /**
-     * @return Data
+     * @return Array
      */
     public function getData()
     {
@@ -57,6 +52,6 @@ class Index
 
     public function setData($data)
     {
-        return $this->data->setData($data);
+        $this->data =  array_merge($this->data, $data);
     }
 }

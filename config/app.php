@@ -8,7 +8,7 @@ return [
         'Media' => Shaoxia\Media\Media::class,
         'Algorithm'  => Shaoxia\Algorithm\Algorithm::class,
         'Decode' => Shaoxia\Decode\Decode::class,
-        'Storage' => Shaoxia\Storage\Storage::class,
+        'Filedb' => Shaoxia\Storage\Filedb::class,
     ],
     // 中间件
     "middleware" => [

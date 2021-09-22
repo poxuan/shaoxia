@@ -2,6 +2,8 @@
 
 namespace Shaoxia\Structure\Bptree;
 
+use Shaoxia\Exceptions\CustomException;
+
 /**
  * Class BPlusTree
  *
@@ -68,9 +70,7 @@ class BPlusTree
             //定位需要插入的叶节点
             while ($tmpNode != null) {
                 $prevNode = $tmpNode;
-                echo 0;
                 $indexMapIterator = $tmpNode->generateIndexMapIterator();
-                
                 //需要处理的下一个树节点是该节点中第一个大于要写入索引值索引对象的上一个兄弟索引对象指向的树节点
                 while ($indexMapIterator->valid()) {
                     $indexObj = $indexMapIterator->current();
@@ -86,12 +86,10 @@ class BPlusTree
                 }
                 $indexMapIterator->prev();
                 $currentIndex = $indexMapIterator->current();
-                
                 $tmpNode = $this->getNodeByID($currentIndex->getNext());
             }
             //叶子节点中保存具体的值.
             $prevNode->addIndex(new Index($index, 0, $record));
-
             //树节点需要分裂
             if ($prevNode->isFull($this->order)) {
                 $this->split($prevNode);
@@ -230,8 +228,7 @@ class BPlusTree
             $indexMapIterator->prev();
             $tmpNode = $this->getNodeByID($indexMapIterator->current()->getNext());
         }
-
-        return 'record ['.$index. '] is not exists!';
+        throw new CustomException('record ['.$index. '] is not exists!');
     }
 
     public function delete()
@@ -282,6 +279,50 @@ class BPlusTree
                 }
                 if ($indexObj->getIndex() >= $start) {
                     array_push($resultData, $indexObj->getData());
+                }
+                $indexMapIterator->next();
+            }
+            $tNode = $this->getNodeByID($tNode->next);
+        }
+
+        return $resultData;
+    }
+
+    public function filterFind(DataFilter $filter, $columns)
+    {
+        $index = $this->minNodeID;
+
+        $tmpNode = $this->getNodeByID($this->root);
+        $prevNode = $tmpNode;
+
+        //根据start索引,定位到叶节点链表开始的节点.
+        while ($tmpNode != null) {
+            $prevNode = $tmpNode;
+            $indexMapIterator = $tmpNode->generateIndexMapIterator();
+            while ($indexMapIterator->valid()) {
+                $indexObj = $indexMapIterator->current();
+                if ($index >= $indexObj->getIndex()) {
+                    $indexMapIterator->next();
+                } else {
+                    break;
+                }
+            }
+            $indexMapIterator->prev();
+            $tmpNode = $this->getNodeByID($indexMapIterator->current()->getNext());
+        }
+
+        $tNode = $prevNode;
+        $resultData  = [];
+
+        //从定位到的节点,遍历叶节点链表,查询出范围内的记录
+        while ($tNode != null) {
+            $indexMapIterator = $tNode->generateIndexMapIterator();
+            while ($indexMapIterator->valid()) {
+                $indexObj = $indexMapIterator->current();
+                $data = $indexObj->getData();
+                if ($filter->check($data)) {
+                    $data = $filter->columns($data, $columns);
+                    array_push($resultData, $data);
                 }
                 $indexMapIterator->next();
             }

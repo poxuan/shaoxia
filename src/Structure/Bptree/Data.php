@@ -7,7 +7,7 @@ namespace Shaoxia\Structure\Bptree;
  *
  * 数据类
  */
-class Data
+class Data implements \ArrayAccess
 {
     private $data = [];
 
@@ -32,6 +32,26 @@ class Data
     public function setData($data)
     {
         $this->data = array_merge($this->data, $data);
+    }
+
+    public function offsetExists($offset) {
+        return isset($this->data[$offset]);
+    }
+
+    public function offsetGet($offset) {
+        return $this->data[$offset] ?? null;
+    }
+
+    public function offsetSet($offset, $value) {
+        $this->data[$offset] = $value;
+    }
+
+    public function offsetUnset($offset) {
+        unset($this->data[$offset]);
+    }
+
+    public function toArray() {
+        return $this->data;
     }
 
     public function __toString()
