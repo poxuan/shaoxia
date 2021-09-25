@@ -19,6 +19,11 @@ class BtreeDB
     private $order = 3;
     private $index_key = 'id';
 
+    /**
+     * @var DataFilter
+     */
+    private $dataFilter = null;
+
     public function __construct($db_path = '/tmp/file_db', $order = 3)
     {
         $this->db_path = $db_path;
@@ -94,7 +99,7 @@ class BtreeDB
     /**
      * @param $start
      * @param $end
-     * @return array
+     * @return self
      *
      * 添加或查询规则
      */

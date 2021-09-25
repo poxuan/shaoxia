@@ -3,6 +3,7 @@
 use Shaoxia\Boot\Request;
 use Shaoxia\Boot\Response;
 use Shaoxia\Boot\Route;
+use Shaoxia\Exceptions\CustomException;
 use Shaoxia\Exceptions\MethodNotFoundException;
 use Shaoxia\Exceptions\RouteNotMatchException;
 
@@ -157,8 +158,9 @@ class application
             $this->run_middleware();
             // 执行结果
             $result = $this->handle();
-        } catch (Throwable $exception) {
-            $result = $this->handler ? $this->handler->render($this->request, $exception) : $exception->getMessage();
+        } catch (Throwable $t) {
+            $msg = $t->getFile().":".$t->getLine()."#".$t->getMessage();
+            $result = $this->handler ? $this->handler->render($this->request, $t) : $msg;
         }
         $this->response->resource($result)->output();
     }
@@ -229,7 +231,16 @@ class application
             } elseif ($is_path && isset($this->pathParams[$name])) {
                 $params[] = $this->pathParams[$name];
             } else {
-                $default =  $param->getDefaultValue() ?? null;
+                $has_default = true;
+                try {
+                    $default =  $param->getDefaultValue() ?? null;
+                } catch(\Throwable $t) {
+                    $has_default = false;
+                    $default = null;
+                }
+                if (!$has_default && !$this->request->has($name)){
+                    throw new CustomException("参数未定义");
+                }
                 $params[] = $this->request->get($name, $default);
             }
         }

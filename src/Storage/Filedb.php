@@ -82,9 +82,7 @@ class Filedb
             $db = new BtreeDB(STORAGE_PATH);
             $db->open('buser');
             $e = microtime(true);
-            var_dump($e-$s);
-            // var_dump($db->where('id', 'between', [999,1002])->select('name as nickname,mobile as phone'));
-            var_dump($db->find(rand(1,10000)));
+            var_dump($db->where('id', 'between', [20,1002])->where('name','like','999')->orWhere('mobile','like','999')->select('id,name as nickname,mobile as phone'));
             $e = microtime(true);
             var_dump($e-$s);
             // 读取 0.958 秒

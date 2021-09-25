@@ -18,7 +18,9 @@ class DataFilter
     public function append($scope, $column, $operation = '=', $data = null) {
         if (is_array($column)) {
             foreach($column as $key => $val) {
-                if (is_numeric($key) && is_array($val)) {
+                if ($key == '_logic') {
+                    $rule['_logic'] = $val;
+                } elseif (is_numeric($key) && is_array($val)) {
                     array_unshift($val, 'rule');
                     $rule[] = $val;
                 } else {
@@ -28,7 +30,7 @@ class DataFilter
         } else {
             $rule = ['rule', $column, $operation , $data];
         }
-        if ($scope == 'or') {
+        if ($scope == 'or') { // or 只和前一个（组）条件绑定
             $pop = array_pop($this->filter);
             $rule = [$pop, $rule, '_logic' => 'or'];
         }
@@ -62,12 +64,15 @@ class DataFilter
         return $res;
     }
 
-    public function check($item, $rule = null) {
-        $rules = $rule ?: $this->filter;
+    public function check($item, $rules = null) {
+        $rules = $rules ?: $this->filter;
         if (empty($rules)) {
             return true;
         }
+        
         $logic = strtolower($rules['_logic'] ?? 'and');
+        unset($rules['_logic']);
+        
         if ($rules[0] == 'rule') {
             $res = false;
             $column = $rules[1];
@@ -112,14 +117,15 @@ class DataFilter
         } elseif ($logic == 'and') {
             $res = true;
             foreach($rules as $rule) {
-                $res &= $this->check($item, $rule);
+                $res = $res && $this->check($item, $rule);
             }
         } else {
             $res = false;
             foreach($rules as $rule) {
-                $res |= $this->check($item, $rule);
+                $res = $res || $this->check($item, $rule);
             }
         }
+        // var_dump($item, $logic, $rules, $res);
         return $res;
     }
 }
