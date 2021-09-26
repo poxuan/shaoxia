@@ -10,31 +10,42 @@ class DataHide
     const DEFAULT_SEED = 0x3f4a819c;
     // 支持的字符
     protected $chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
-
     // 加密字符集
     protected $encode_chars = '';
-    protected $check_char = '0';
+    // 偏移率
     protected $offset = 0;
+    // 当前种子
+    protected $seed = null;
+    protected $seedArr = [];
+    protected $seedSum = 0;
 
-    public function __construct(int $seed = self::DEFAULT_SEED, $loop = 10)
+    public function __construct(int $seed = self::DEFAULT_SEED)
     {
         if ($seed <= 0) {
             throw new CustomException("加密种子仅支持正数");
         }
-        $seed1 = $seed % 64;
-        $seed2 = $seed % ($seed1 < 2 ? 64 - $seed1 : $seed1);
-        $this->offset = round($seed1 / 64, 2);
+        $this->seed = $seed;
+        $seedArr = [];
+        $seedSum = 0;
+        while($seed > 0) {
+            $newSeed = $seed % 64;
+            $seedArr[] = $newSeed;
+            $seedSum += $newSeed;
+            $seed = $seed >> 6; 
+        }
+        $this->seedArr = $seedArr;
+        $this->seedSum = $seedSum;
+        $this->offset = round($seedArr[0] / 64, 2);
         $char1 = $this->chars;
-        do {
+        foreach($seedArr as $seed1) {
+            $seed2 = $seed1 ? $this->seed % $seed1: 0;
             $char2 = $char1;
             $char1 = "";
-            for($i = 0; $i < strlen($char2); $i++) {
-                $key = (($seed2 ^ $seed1 ^ $i) + $seed2) % 64 ;
+            for($i = 0; $i < strlen($char2); $i++) { // 位置替换
+                $key = ($seed1 ^ $i + $seed2) % 64;
                 $char1 .= $char2[$key];
             }
-            $seed2 --;
-            $loop  --; // 最大循环次数
-        } while($seed2 > 0 && $loop > 0);
+        }
         $this->encode_chars = $char1;
     }
 
@@ -54,27 +65,18 @@ class DataHide
         if (empty($str)) {
             return '';
         }
-
 		$pattern = $this->encode_chars;
 		$plen = strlen($pattern);
-		
         // 随机进制转换
         $to_base = rand(0x11, 0x1b);
         // 超过8位不使用系统进制转换方式
-        $type = strlen($str) > 8 ? rand(2, 3)  : rand(0, 3);
-        $rand =  $to_base + ($type - 1) * 0x10;
-        $prefix = $pattern[$rand];
-        switch($type) {
-            case 2:
-            case 3:
-                $convert = $this->base_convert($str, 36, $to_base);
-                break;
-            default: 
-                $convert = base_convert($str, 36, $to_base);
-        }
+        $type = rand(0, 3);
+        $rand = $to_base + ($type - 1) * 0x10; // 四种随机偏移
+        $prefix = $pattern[$rand]; // 进制前缀
+        $convert = $this->base_convert($str, 36, $to_base); // 替换值
         $str = $prefix . $convert;
-        $llen = strlen($str);
-        if (empty($length)) {
+        $llen = strlen($str); // 转换值
+        if (empty($length)) { // 
             $min_length = max(strlen($str) + 3, 7);
             $max_length = $min_length + min(strlen($str), 31);
             $length = rand($min_length, $max_length);
@@ -88,15 +90,16 @@ class DataHide
         } else {
             throw new CustomException("生成长度不足");
         }
-        $offset = $llen % $plen;
-        // 倒数第二字符处，记录数据长度
-        $key[$length - 2] = $pattern[$offset];
-		$check_count = 0;
-        for ($i = 0; $i < $length - 1; $i++) {
+		$check_count = $this->seedSum;
+        for ($i = 0; $i < $length - 2; $i++) {
             $check_count += ord($key[$i]);
         }
         // 倒数第一字符为校验位
-        $key[$length - 1] = $pattern[$check_count % 64];
+        $check_offset = $check_count % 64;
+        $key[$length - 1] = $pattern[$check_offset];
+        // 倒数第二字符处，记录数据长度
+        $length_offset = ($llen + $check_offset) % $plen;
+        $key[$length - 2] = $pattern[$length_offset];
 		return $key; 
 	}
 
@@ -105,8 +108,8 @@ class DataHide
         try {
             $pattern = $this->encode_chars;
             $length = strlen($hideStr);
-            $check_count = 0;
-            for ($i = 0; $i < $length - 1; $i++) {
+            $check_count = $this->seedSum;
+            for ($i = 0; $i < $length - 2; $i++) {
                 $check_count += ord($hideStr[$i]);
             }
             // 校验位不一致，则解码失败
@@ -114,10 +117,14 @@ class DataHide
             if ($pattern[$check_count % 64] != $check_char) {
                 return "";
             }
+            $check_offset = strpos($pattern, $check_char);
             $leng_char = $hideStr[$length - 2];
-            $llen = strpos($pattern, $leng_char);
+            $llen = strpos($pattern, $leng_char) - $check_offset;
             while($llen + 64 < $length) {
                 $llen += 64;
+            }
+            if ($llen > $length) { // 不可能比它更长
+                return '';
             }
             $raw = "";
             for ($i = 0; $i< $llen; $i++) {
@@ -125,21 +132,46 @@ class DataHide
                 $raw .= $hideStr[$pos];
             }
             $base = strpos($pattern, $raw[0]) % 0x10 + 0x10;
-            $type = intval(strpos($pattern, $raw[0]) / 0x10);
             $raw = substr($raw, 1);
-            switch ($type) {
-                case 2:
-                case 3:
-                    $res = $this->base_convert($raw, $base, 36);
-                    break;
-                default:
-                    $res = base_convert($raw, $base, 36);
-            }
+            $res = $this->base_convert($raw, $base, 36);
             return $res;
         } catch(\Throwable $t) {
             return '';
         }
 	}
+
+    const HIDE_FORMAT_JSON = 1;
+    const HIDE_FORMAT_SERIALIZE = 2;
+
+    public function hideData($data, $type = self::HIDE_FORMAT_JSON) 
+	{
+        switch($type) {
+            case self::HIDE_FORMAT_JSON:
+                $str = json_encode($data);
+                break;
+            case self::HIDE_FORMAT_SERIALIZE:
+                $str = serialize($data);
+                break;
+            default:
+                return '';       
+        }
+        $str = $this->base64_encode($str);
+        return $this->hideStr($str);
+    }
+    
+    public function showData($str, $type = self::HIDE_FORMAT_JSON) 
+	{
+        $str = $this->showStr($str);
+        $data = $this->base64_decode($str);
+        switch($type) {
+            case self::HIDE_FORMAT_JSON:
+                return json_decode($data);
+            case self::HIDE_FORMAT_SERIALIZE:
+                return unserialize($data);
+        }
+        return '';
+    }
+    
 
     public function base64_encode($str) {
         return str_replace(['+','/','='],['-','_',''], base64_encode($str));
@@ -166,10 +198,10 @@ class DataHide
                     $diff = $p - $offset - $to_base;
                     switch($diff) {
                         case 2:
-                            $res .= '-';
+                            $res .= '_';
                             break;
                         case 3:
-                            $res .= '_';
+                            $res .= '-';
                             break;
                         default:
                             $res .= '?';

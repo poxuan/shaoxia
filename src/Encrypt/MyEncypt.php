@@ -18,17 +18,36 @@ class MyEncypt
         return $dh->showStr($str);
     }
 
-    public function dh_test($length)
+    public function dh_test($length,$type='array')
     {
         $dh = new DataHide();
-        $data = [];
-        for ($i=0; $i<$length; $i++) {
-            $data[] = $dh->randerStr(5);
+        if ($type == 'array') {
+            $data = [];
+            for ($i=0; $i<$length; $i++) {
+                $data[] = $dh->randerStr(5);
+            }
+            $hide = $dh->hideData($data);
+            $show = $dh->showData($hide);
+        } else {
+            $data = $dh->randerStr($length);
+            $hide = $dh->hideStr($data);
+            $show = $dh->showStr($hide);
         }
-        $str = $dh->base64_encode(json_encode($data));
-        $hide = $dh->hideStr($str);
-        $show = $dh->showStr($hide);
-        $res = json_decode($dh->base64_decode($show));
-        return ['str' => $str, 'hide' => $hide, 'show' => $show, 'data' => $res, 'res' => $res];
+        return ['hide' => $hide, 'show' => $show, 'data' => $data];
+    }
+
+    public function dh_try($str, $raw = '')
+    {
+        $s = microtime(true);
+        for($i=1;$i<0xffffff;$i++) {
+            $dh = new DataHide($i);
+            $res = $dh->showStr($str);
+            if ($res) {
+                if ($raw && $raw == $res)
+                    echo "$i:$res \n";
+            }
+        }
+        $e = microtime(true);
+        echo "time:" . ($e-$s);
     }
 }
