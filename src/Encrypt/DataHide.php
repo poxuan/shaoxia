@@ -181,30 +181,38 @@ class DataHide
         return base64_decode(str_replace(['-','_'], ['+','/'], $str));
     }
 
-    private function base_convert($land, $from_base, $to_base) {
+    private function base_convert($str, $from_base, $to_base) {
 		$res = '';
 		$pattern = $this->encode_chars;
+        // 差值作为偏移量
 		$offset = abs($from_base - $to_base);
-		if ($from_base < $to_base) { // 解码
-			$llen = strlen($land);
+		if ($from_base < $to_base) { // 目标编码大为解码
+			$llen = strlen($str);
 			$case = 1; // 大小写转换 1 小写 2 大写
 			$append = 0; // 额外长度
+            $extra = false;
 			for($i = 0; $i < $llen; $i++) {
-				$p = strpos($pattern, $land[$i]);
-				if ($p < $offset) {
+				$p = strpos($pattern, $str[$i]);
+				if ($extra) { // 其他字符
+                    $append += 1;
+                    $ord = $p + (($extra - 2) << 6);
+                    $res .= chr($ord);
+                    $extra = false;
+                } elseif ($p < $offset) { // 大小写转换专用
+                    // 当前大小写转换
                     $case = $case == 1 ? 2 : 1;
 					$append += 1;
 				} elseif ($p >= $offset + $to_base) {
                     $diff = $p - $offset - $to_base;
                     switch($diff) {
-                        case 2:
+                        case 0:
                             $res .= '_';
                             break;
-                        case 3:
+                        case 1:
                             $res .= '-';
                             break;
-                        default:
-                            $res .= '?';
+                        default: // 
+                            $extra = $diff;
                     }
                 } else {
                     $e = $p - $offset - $i + $append;
@@ -216,24 +224,28 @@ class DataHide
                 }
 			}
 		} else { // 加码
-			$llen = strlen($land);
+			$llen = strlen($str);
 			$upcase = false;
 			for($i = 0; $i < $llen; $i++) {
-				if (preg_match('/[0-9a-z]/i', $land[$i])) {
-					if (!$upcase && $land[$i] >= 'A' &&  $land[$i] <= 'Z') {
+				if (preg_match('/[0-9a-z]/i', $str[$i])) {
+					if (!$upcase && $str[$i] >= 'A' &&  $str[$i] <= 'Z') {
 						$res .= $pattern[rand(0, $offset - 1)];
 						$upcase = true;
 					}
-					if ($upcase && $land[$i] >= 'a' &&  $land[$i] <= 'z') {
+					if ($upcase && $str[$i] >= 'a' &&  $str[$i] <= 'z') {
 						$res .= $pattern[rand(0, $offset - 1)];
 						$upcase = false;
 					}
-					$e = base_convert($land[$i], 36, 10);
+					$e = base_convert($str[$i], 36, 10);
 					$key = ($e + $i) % $from_base + $offset;
 					$res .= $pattern[$key];
 				} else {
-					$key = $land[$i] == '_' ? 2: ($land[$i] == '-'? 3 : 4);
+                    $ord = ord($str[$i]);
+					$key = $str[$i] == '_' ? 0: ($str[$i] == '-'? 1 : ($ord >> 6) + 2);
 					$res .= $pattern[$from_base + $offset + $key];
+                    if ($key >= 2) {
+                        $res .= $pattern[$ord % 64];
+                    }
 				}
 			}
 		}
