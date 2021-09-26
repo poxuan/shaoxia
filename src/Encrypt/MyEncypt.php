@@ -43,7 +43,7 @@ class MyEncypt
             $dh = new DataHide($i);
             $res = $dh->showStr($str);
             if ($res) {
-                if ($raw && $raw == $res)
+                if (empty($raw) || $raw == $res)
                     echo "$i:$res \n";
             }
         }

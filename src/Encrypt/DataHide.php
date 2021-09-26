@@ -82,7 +82,7 @@ class DataHide
             $length = rand($min_length, $max_length);
         }
 		$key = $this->randerStr($length);
-        if ($length > $llen) { // 在除最后两位字符外的地方填充
+        if ($length - 2 >= $llen) { // 在除最后两位字符外的地方填充
             for($i = 0; $i < $llen; $i++) {
                 $pos = intval(($i + $this->offset) * ($length - 2) / $llen);
                 $key[$pos] = $str[$i];
