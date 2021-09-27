@@ -20,4 +20,8 @@ class ErrorHandler implements ExceptionHandler
     public function render(Request $request, \Throwable $t) {
         echo $t->getMessage();
     }
+
+    public function renderForCli(Request $request, \Throwable $t) {
+        echo $t->getMessage();
+    }
 }

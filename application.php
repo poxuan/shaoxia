@@ -194,7 +194,8 @@ class application
             $result = $this->handle();
         } catch (Throwable $t) {
             $handler = ExceptionHandler::class;
-            $result = $this->$handler ? $this->$handler->render($this->request, $t) : die($t);
+            $render = $this->is_cli ? 'renderForCli' : 'render'; 
+            $result = $this->$handler ? $this->$handler->$render($this->request, $t) : die($t);
         }
         if ($result instanceof Response) {
             $result->output();
