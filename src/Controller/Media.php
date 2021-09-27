@@ -1,6 +1,6 @@
 <?php 
 
-namespace Shaoxia\Media;
+namespace Shaoxia\Controller;
 
 use \Shaoxia\Media\Image\Image;
 

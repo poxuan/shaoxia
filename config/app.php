@@ -5,11 +5,7 @@ return [
     "bindings" => [],
     // 别名
     'alias' => [
-        'Media' => Shaoxia\Media\Media::class,
-        'Algorithm'  => Shaoxia\Algorithm\Algorithm::class,
-        'Decode' => Shaoxia\Decode\Decode::class,
-        'Filedb' => Shaoxia\Storage\Filedb::class,
-        'MyEncypt' => Shaoxia\Encrypt\MyEncypt::class,
+        
     ],
     // 中间件
     "middleware" => [

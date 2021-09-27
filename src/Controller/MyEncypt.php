@@ -1,7 +1,8 @@
 <?php
 
-namespace Shaoxia\Encrypt;
+namespace Shaoxia\Controller;
 
+use Shaoxia\Encrypt\DataHide;
 
 class MyEncypt
 {

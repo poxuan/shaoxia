@@ -1,6 +1,6 @@
 <?php 
 
-namespace Shaoxia\Decode;
+namespace Shaoxia\Controller;
 
 use Shaoxia\Boot\Request;
 use Shaoxia\Decode\Js\Js0x;

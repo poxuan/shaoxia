@@ -5,6 +5,8 @@ use Shaoxia\Boot\Route;
 // 预定模式匹配
 Route::pattern("id", "[0-9]+");
 
+Route::get("/", "Media@image");
+
 // GET路由,类名必须全拼或在config设置别名
 Route::get("image/{angle}", "Media@image");
 

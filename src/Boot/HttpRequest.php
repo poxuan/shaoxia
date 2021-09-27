@@ -6,7 +6,7 @@ class HttpRequest implements Request
 {
     protected $params = [];
     protected $options = null;
-
+    protected $headers = [];
     public function __construct() {
         $this->getOptions();
     }
@@ -61,6 +61,21 @@ class HttpRequest implements Request
             return $this->options[$name];
         }
         return $default;
+    }
+
+    public function header($name = '',$default = null) {
+        if (empty($this->headers)) {
+            foreach($_SERVER as $key => $value) {
+                if (substr($name, 0, 5) == 'HTTP_') {
+                    $key = strtolower(str_replace('_', '-', substr($name, 5)));
+                    $this->headers[$key] = $value;
+                }
+            }
+        }
+        if ($name) {
+            return $this->headers[strtolower($name)] ?? $default;
+        }
+        return $this->headers;
     }
     
 }

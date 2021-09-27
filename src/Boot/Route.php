@@ -6,12 +6,15 @@ use Shaoxia\Exceptions\RouteNotMatchException;
 
 class Route
 {
+    // 控制器名字空间
+    protected static $ctr_ns = 'Shaoxia\Controller';
+    
     protected static $config = [];
 
     protected static $routes = [];
 
     protected static $middleware = [];
-
+    // 匹配
     protected static $pattern = [];
 
     public static function group($config, $callable) {
@@ -76,12 +79,15 @@ class Route
         static::delete($name.'/{id}', $controller."@destory");
     }
 
+    /**
+     * 获取匹配的路由
+     */
     public static function match($route, $method = 'GET', &$bind = null, &$middleware = null) {
         $method = strtoupper($method);
         if (!isset(static::$routes[$method])) {
             throw new RouteNotMatchException("未匹配到路由1");
         }
-        foreach(static::$routes[$method] as $name => $controller) {
+        foreach(static::$routes[$method] as $name => $path) {
             if (strpos($name, '{')) { // 含有参数项
                 $pattern = '/^'.str_replace('/', '\/', $name).'$/i';
                 $pertten = preg_replace_callback("/{(.*)}/", function ($r) {
@@ -95,10 +101,14 @@ class Route
                     unset($match[0]);
                     $bind = $match;
                     $middleware = static::$middleware[$method][$name] ?? [];
-                    return  explode("@", $controller);
+                    list($controller, $func) =  explode("@", $path);
+                    $controller = static::$ctr_ns.'\\'.$controller;
+                    return [$controller,$func];
                 }
             } elseif ($name == $route) {
-                return explode("@", $controller);
+                list($controller, $func) =  explode("@", $path);
+                $controller = static::$ctr_ns.'\\'.$controller;
+                return [$controller,$func];
             }
         }
         throw new RouteNotMatchException("未匹配到路由2:".$route);

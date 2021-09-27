@@ -113,19 +113,18 @@ class application
         $uri = $this->is_cli ? cli_uri() : $_SERVER['REQUEST_URI'];
         $method =  $this->is_cli ? 'GET' : $_SERVER['REQUEST_METHOD'];
         $path = explode('#', explode("?", ltrim($uri,'/'))[0])[0];
-        if ($path) {
-            // 解析出对应类名、方法名、路由参数、中间件
-            $cf = Route::match($path, $method, $pathParams, $routeMiddleware);
-            if ($cf) {
-                $this->clazz = $cf[0];
-                $this->func  = $cf[1];
-                if (!method_exists($this->clazz, $this->func)) {
-                    throw new MethodNotFoundException("class mothod {$this->clazz}@{$this->func} not found");
-                }
-                $this->pathParams  = $pathParams;
-                $this->setRouteMiddleware($routeMiddleware);
-                return true;
+        $path = $path ?: '/';
+        // 解析出对应类名、方法名、路由参数、中间件
+        $cf = Route::match($path, $method, $pathParams, $routeMiddleware);
+        if ($cf) {
+            $this->clazz = $cf[0];
+            $this->func  = $cf[1];
+            if (!method_exists($this->clazz, $this->func)) {
+                throw new MethodNotFoundException("class mothod {$this->clazz}@{$this->func} not found");
             }
+            $this->pathParams  = $pathParams;
+            $this->setRouteMiddleware($routeMiddleware);
+            return true;
         }
         throw new RouteNotMatchException("路由{$path}无法识别!!!");
     }
@@ -162,7 +161,11 @@ class application
             $msg = $t->getFile().":".$t->getLine()."#".$t->getMessage();
             $result = $this->handler ? $this->handler->render($this->request, $t) : $msg;
         }
-        $this->response->resource($result)->output();
+        if ($result instanceof Response) {
+            $result->output();
+        } else {
+            $this->response->resource($result)->output();
+        }
     }
 
     // 最终执行方法
