@@ -2,15 +2,22 @@
 
 namespace Shaoxia\Exceptions;
 
+use Shaoxia\Boot\ExceptionHandler;
 use Shaoxia\Boot\Request;
 
 /**
  * Class File
  * @package Shaoxia\Exceptions
  */
-class ErrorHandler
+class ErrorHandler implements ExceptionHandler
 {
-    public function rander(Request $request, \Throwable $t) {
+    // 记录报告
+    public function report(\Throwable $t) {
+
+    }
+
+    // 渲染结果
+    public function render(Request $request, \Throwable $t) {
         echo $t->getMessage();
     }
 }

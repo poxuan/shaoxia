@@ -1,6 +1,6 @@
 <?php
 
-define("ROOT_PATH", __DIR__);
+define("ROOT_PATH", dirname(__DIR__));
 define("DS", DIRECTORY_SEPARATOR);
 define("CONFIG_PATH", ROOT_PATH.DS.'config');
 define("SRC_PATH", ROOT_PATH.DS.'src');

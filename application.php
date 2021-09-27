@@ -1,5 +1,6 @@
 <?php
 
+use Shaoxia\Boot\ExceptionHandler;
 use Shaoxia\Boot\Request;
 use Shaoxia\Boot\Response;
 use Shaoxia\Boot\Route;
@@ -18,8 +19,6 @@ class application
     private $request = null;
     // 返回处理类
     private $response = null;
-    // 异常处理类
-    private $handler = null;
     // 绑定关系
     private $binded = [];
     // 全局中间件
@@ -27,7 +26,7 @@ class application
     // 路由结果
     private $clazz = null;    // 最终执行类
     private $func = null;     // 最终执行方法
-    private $pathParams = []; // 路径中参数
+    private $routeParams = []; // 路径中参数
     private $routeMiddleware = []; // 路由中间件
 
     private function __construct($is_cli)
@@ -46,7 +45,11 @@ class application
         $this->binded[Response::class] = $this->response;
     }
 
-    // 单例
+    /**
+     * 单例
+     * 
+     * @return self
+     */
     public static function getInstance($is_cli = true)
     {
         if (!self::$instance) {
@@ -60,7 +63,9 @@ class application
 
     }
 
-    // 初始化
+    /**
+     * 初始化
+     */
     private function ini()
     {
         $this->iniConfig = config('', [], 'app');
@@ -93,36 +98,66 @@ class application
         require_once CONFIG_PATH . '/route.php';
     }
 
-    public function bind($interface, $clazz)
+    /**
+     * 绑定
+     * 
+     * @param string $abstract 虚类
+     * @param string|object $closure 实例（类）
+     */
+    public function bind($abstract, $closure)
     {
-        $this->binded[$interface] = $clazz;
+        $this->binded[$abstract] = $closure;
     }
 
+    /**
+     * 设置别名
+     * 
+     * @param string $alias 别名
+     * @param string $clazz 类名
+     */
     public function alias($alias, $clazz)
     {
         class_alias($clazz, $alias);
         class_uses($alias);
     }
 
-        /**
+    /**
+     * 获取绑定参数
+     * 
+     * @param string $name 虚类名
+     * 
+     * @return object|null 
+     */
+    public function __get($name)
+    {
+        if ($this->binded[$name]) {
+            return $this->ini_clazz($name);
+        }
+        return null;
+    }
+
+    /**
      * 解析控制器和方法名
+     * 
+     * @return bool
+     * @throws CustomException
      */
     protected function parse_path()
     {
-        $pathParams = $routeMiddleware = [];
+        $routeParams = $routeMiddleware = [];
         $uri = $this->is_cli ? cli_uri() : $_SERVER['REQUEST_URI'];
         $method =  $this->is_cli ? 'GET' : $_SERVER['REQUEST_METHOD'];
         $path = explode('#', explode("?", ltrim($uri,'/'))[0])[0];
         $path = $path ?: '/';
         // 解析出对应类名、方法名、路由参数、中间件
-        $cf = Route::match($path, $method, $pathParams, $routeMiddleware);
+        $cf = Route::match($path, $method, $routeParams, $routeMiddleware);
         if ($cf) {
             $this->clazz = $cf[0];
             $this->func  = $cf[1];
             if (!method_exists($this->clazz, $this->func)) {
                 throw new MethodNotFoundException("class mothod {$this->clazz}@{$this->func} not found");
             }
-            $this->pathParams  = $pathParams;
+            $this->routeParams  = $routeParams;
             $this->setRouteMiddleware($routeMiddleware);
             return true;
         }
@@ -155,11 +190,11 @@ class application
             $this->parse_path();
             // 执行中间件
             $this->run_middleware();
-            // 执行结果
+            // 执行控制器方法
             $result = $this->handle();
         } catch (Throwable $t) {
-            $msg = $t->getFile().":".$t->getLine()."#".$t->getMessage();
-            $result = $this->handler ? $this->handler->render($this->request, $t) : $msg;
+            $handler = ExceptionHandler::class;
+            $result = $this->$handler ? $this->$handler->render($this->request, $t) : die($t);
         }
         if ($result instanceof Response) {
             $result->output();
@@ -202,52 +237,67 @@ class application
         };
     }
 
+    /**
+     * 初始化一个类
+     * 
+     * @param string $class
+     * 
+     * @return object
+     * @throws CustomException
+     */
     private function ini_clazz($clazz)
     {
         if ($c = $this->binded[$clazz] ?? null) {
             if (is_object($c)) { // 如果已经实例化,直接返回
                 return $c;
-            } elseif (class_exists($c)) { // 如果是个类名,转换传入值
+            } elseif (class_exists($c)) { // 如果是个类名,改为被绑定类
                 $clazz = $c;
             }
         }
         if (!class_exists($clazz)) {
             throw new MethodNotFoundException("class {$clazz} not found");
         }
-        if (!method_exists($clazz, '__construct')) {
+        if (!method_exists($clazz, '__construct')) { // 没有构造类直接生成
             return new $clazz();
         }
+        // 先生成构造参数，再初始化
         $params = $this->ini_param($clazz, '__construct');
-        return call_user_func_array([$clazz, '__construct'], $params);
+        return $params ? new $clazz(...$params) : new $clazz(); // call_user_func_array([$clazz, '__construct'], $params);
     }
 
-    private function ini_param($clazz, $func, $is_path = false)
+    /**
+     * 初始化类的参数
+     * 
+     * @param string $clazz 类名
+     * @param string $func 方法名
+     * @param bool $is_route 是否路由类
+     * 
+     * @return array
+     * @throws CustomException
+     */
+    private function ini_param($clazz, $func, $is_route = false)
     {
         $method = new ReflectionMethod($clazz, $func);
+        if (!$method->isPublic()) {
+            throw New CustomException("类 {$clazz} 的方法 {$func} 是私有的");
+        }
         foreach ($method->getParameters() as $param) {
             $name    = $param->getName();
             $clazz2  = $param->getClass();
-            if ($clazz2) {
+            if ($clazz2) { // 当前参数有定义类
                 $params[] = $this->ini_clazz($clazz2->getName());
-            } elseif ($param->isPassedByReference()) {
-                throw new MethodNotFoundException("class {$clazz} methed {$func} params {$name} is reference");
-            } elseif ($is_path && isset($this->pathParams[$name])) {
-                $params[] = $this->pathParams[$name];
+            } elseif ($param->isPassedByReference()) { // 当前参数是引用？
+                throw new CustomException("类 {$clazz} 的方法 {$func} 中参数 {$name} 是引用，无法实例化");
+            } elseif ($is_route && isset($this->routeParams[$name])) { // 当前类是控制器类，且有此路由参数
+                $params[] = $this->routeParams[$name];
+            } elseif($this->request->has($name)) { // 请求参数中有此值
+                $params[] = $this->request->get($name);
+            } elseif ($param->isDefaultValueAvailable()) { // 参数有默认值
+                $params[] = $param->getDefaultValue();
             } else {
-                $has_default = true;
-                try {
-                    $default =  $param->getDefaultValue() ?? null;
-                } catch(\Throwable $t) {
-                    $has_default = false;
-                    $default = null;
-                }
-                if (!$has_default && !$this->request->has($name)){
-                    throw new CustomException("参数未定义");
-                }
-                $params[] = $this->request->get($name, $default);
+                throw New CustomException("类 {$clazz} 的方法 {$func} 中参数 {$name} 不能初始化");
             }
         }
         return $params;
     }
-
 }

@@ -5,7 +5,7 @@
  */
 function config($name = '', $default = null, $file = 'config')
 {
-    $configs = require __DIR__ . '/config/'.$file.'.php';
+    $configs = require ROOT_PATH . '/config/'.$file.'.php';
     $value = null;
     if ($name == '') {
         return $configs;
@@ -29,7 +29,7 @@ function cli_uri() {
 
 function app()
 {
-    require_once __DIR__ . '/application.php';
+    require_once ROOT_PATH . '/application.php';
     return application::getInstance(is_cli());
 }
 

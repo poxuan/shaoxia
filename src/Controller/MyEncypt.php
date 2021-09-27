@@ -2,10 +2,16 @@
 
 namespace Shaoxia\Controller;
 
+use Shaoxia\Boot\Request;
 use Shaoxia\Encrypt\DataHide;
 
 class MyEncypt
 {
+
+    public function __construct(Request $r)
+    {
+        
+    }
     
     public function dh_hide($str = "")
     {
