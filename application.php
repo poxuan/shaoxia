@@ -21,6 +21,7 @@ class application
     private $response = null;
     // 绑定关系
     private $binded = [];
+    private $instand = [];
     // 全局中间件
     private $middleware = [];
     // 路由结果
@@ -242,28 +243,36 @@ class application
      * 初始化一个类
      * 
      * @param string $class
+     * @param bool $single 是否唯一
      * 
      * @return object
      * @throws CustomException
      */
-    private function ini_clazz($clazz)
+    private function ini_clazz($clazz, $single = true)
     {
+        if ($single && $ins = $this->instand[$clazz] ?? null) {
+            return $ins;
+        }
+        $clazz2 = $clazz;
         if ($c = $this->binded[$clazz] ?? null) {
             if (is_object($c)) { // 如果已经实例化,直接返回
+                $this->instand[$clazz] = $c;
                 return $c;
             } elseif (class_exists($c)) { // 如果是个类名,改为被绑定类
-                $clazz = $c;
+                $clazz2 = $c;
             }
         }
-        if (!class_exists($clazz)) {
+        if (!class_exists($clazz2)) {
             throw new MethodNotFoundException("class {$clazz} not found");
         }
-        if (!method_exists($clazz, '__construct')) { // 没有构造类直接生成
-            return new $clazz();
+        if (!method_exists($clazz2, '__construct')) { // 没有构造类直接生成
+            return new $clazz2();
         }
         // 先生成构造参数，再初始化
-        $params = $this->ini_param($clazz, '__construct');
-        return $params ? new $clazz(...$params) : new $clazz(); // call_user_func_array([$clazz, '__construct'], $params);
+        $params = $this->ini_param($clazz2, '__construct');
+        $obj = $params ? new $clazz2(...$params) : new $clazz();
+        $this->instand[$clazz] = $obj;
+        return $obj;
     }
 
     /**
