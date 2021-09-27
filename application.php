@@ -248,7 +248,7 @@ class application
      * @return object
      * @throws CustomException
      */
-    private function ini_clazz($clazz, $single = true)
+    protected function ini_clazz($clazz, $single = true)
     {
         if ($single && $ins = $this->instand[$clazz] ?? null) {
             return $ins;
@@ -285,7 +285,7 @@ class application
      * @return array
      * @throws CustomException
      */
-    private function ini_param($clazz, $func, $is_route = false)
+    protected function ini_param($clazz, $func, $is_route = false)
     {
         $method = new ReflectionMethod($clazz, $func);
         if (!$method->isPublic()) {
