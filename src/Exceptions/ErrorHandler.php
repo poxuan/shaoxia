@@ -18,10 +18,10 @@ class ErrorHandler implements ExceptionHandler
 
     // 渲染结果
     public function render(Request $request, \Throwable $t) {
-        echo $t->getMessage();
+        die($t);
     }
 
     public function renderForCli(Request $request, \Throwable $t) {
-        echo $t->getMessage();
+        die($t);
     }
 }

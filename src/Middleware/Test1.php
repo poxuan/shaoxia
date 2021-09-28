@@ -5,7 +5,7 @@ namespace Shaoxia\Middleware;
 class Test1 
 {
     function handle($request, $next) {
-        // echo "test1";
+        // echo "test 1\n";
         return $next ? $next($request) : null;
     }
 }

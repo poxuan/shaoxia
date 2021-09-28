@@ -1,6 +1,7 @@
 <?php
 
 use Shaoxia\Boot\ExceptionHandler;
+use Shaoxia\Boot\FinalHandle;
 use Shaoxia\Boot\Request;
 use Shaoxia\Boot\Response;
 use Shaoxia\Boot\Route;
@@ -197,8 +198,6 @@ class application
         try {
             // 解析路径
             $this->parse_path();
-            // 执行中间件
-            $this->run_middleware();
             // 执行控制器方法
             $result = $this->handle();
         } catch (Throwable $t) {
@@ -215,22 +214,24 @@ class application
 
     // 最终执行方法
     protected function handle() {
+        // 最后的执行类设为尾节点
         $class = $this->ini_clazz($this->clazz);
         $params = $this->ini_param($class, $this->func, true);
-        return call_user_func_array([$class, $this->func], $params);
+        $finalPoint = new FinalHandle($class, $this->func, $params);
+        return $this->run_middleware($finalPoint);
     }
 
 
     // 依次执行中间件
-    protected function run_middleware()
+    protected function run_middleware($finalPoint)
     {
-        $stack = array_merge($this->middleware, $this->routeMiddleware);
+        $stack = array_merge($this->middleware, $this->routeMiddleware, [$finalPoint]);
         if ($stack) {
             $pipeline = array_reduce(
                 array_reverse($stack),
                 $this->carry()
             );
-            $pipeline($this->request);
+            return $pipeline($this->request);
         }
     }
     
