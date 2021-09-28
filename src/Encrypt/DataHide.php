@@ -67,8 +67,8 @@ class DataHide
         }
 		$pattern = $this->encode_chars;
 		$plen = strlen($pattern);
-        // 随机进制转换
-        $to_base = rand(0x11, 0x1b);
+        // 随机进制转换，此区间不要动，保证前后区长度控制均在8-20之间
+        $to_base = rand(0x10, 0x1c);
         // 超过8位不使用系统进制转换方式
         $type = rand(0, 3);
         $rand = $to_base + ($type - 1) * 0x10; // 四种随机偏移
@@ -195,25 +195,18 @@ class DataHide
 				$p = strpos($pattern, $str[$i]);
 				if ($extra) { // 其他字符
                     $append += 1;
-                    $ord = $p + (($extra - 2) << 6);
-                    $res .= chr($ord);
+                    $j = $i - $append;
+                    $pre = (($extra - 1)^ ($j & 7)) << 5;
+                    $fix = $p - $offset - ($j & 31);
+                    $fix = $fix < 0 ? $fix + 32 : $fix;
+                    $res .= chr($pre + $fix);
                     $extra = false;
                 } elseif ($p < $offset) { // 大小写转换专用
                     // 当前大小写转换
                     $case = $case == 1 ? 2 : 1;
 					$append += 1;
 				} elseif ($p >= $offset + $to_base) {
-                    $diff = $p - $offset - $to_base;
-                    switch($diff) {
-                        case 0:
-                            $res .= '_';
-                            break;
-                        case 1:
-                            $res .= '-';
-                            break;
-                        default: // 
-                            $extra = $diff;
-                    }
+                    $extra = $p - $offset - $to_base;
                 } else {
                     $e = $p - $offset - $i + $append;
                     while ($e < 0) {
@@ -228,6 +221,7 @@ class DataHide
 			$upcase = false;
 			for($i = 0; $i < $llen; $i++) {
 				if (preg_match('/[0-9a-z]/i', $str[$i])) {
+                    // 大小写转换用前区扩展位
 					if (!$upcase && $str[$i] >= 'A' &&  $str[$i] <= 'Z') {
 						$res .= $pattern[rand(0, $offset - 1)];
 						$upcase = true;
@@ -239,13 +233,11 @@ class DataHide
 					$e = base_convert($str[$i], 36, 10);
 					$key = ($e + $i) % $from_base + $offset;
 					$res .= $pattern[$key];
-				} else {
+				} else {// 其他字符用后区扩展位
                     $ord = ord($str[$i]);
-					$key = $str[$i] == '_' ? 0: ($str[$i] == '-'? 1 : ($ord >> 6) + 2);
-					$res .= $pattern[$from_base + $offset + $key];
-                    if ($key >= 2) {
-                        $res .= $pattern[$ord % 64];
-                    }
+					$key = ($ord >> 5) ^ ($i & 7);
+					$res .= $pattern[$from_base + $offset + $key + 1];
+                    $res .= $pattern[$offset + (($ord + $i) & 31)];
 				}
 			}
 		}
