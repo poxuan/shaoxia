@@ -9,74 +9,203 @@ class Route
     // 控制器名字空间
     protected static $ctr_ns = 'Shaoxia\Controller';
     
-    protected static $config = [];
+    protected $current = [];
+    protected $prefix = '';
+    protected $middlewares = [];
+    protected $pattern = [];
 
-    protected static $routes = [];
-
-    protected static $middleware = [];
+    protected static $allRoutes = [];
+    // 路由中间件
+    protected static $routeMiddlewares = [];
+    // 路由模式匹配
+    protected static $routePatterns = [];
+    // 路由别名
+    protected static $routeAlias = [];
     // 匹配
-    protected static $pattern = [];
+    protected static $basePattern = [];
 
-    public static function group($config, $callable) {
-        static::$config = $config;
-        $callable(new self);
-        static::$config = [];
+    protected static $instance = null;
+
+    public static function getInstance() {
+        if (!static::$instance) {
+            static::$instance = new self();
+        }
+        return static::$instance;
     }
 
-    public static function get($name, $controller) {
-        if (isset(static::$config['prefix'])) {
-            $name = static::$config['prefix']. $name;
-        }
-        if (isset(static::$config['middleware'])) {
-            $name = static::$config['prefix']. $name;
-            static::$middleware['GET'][$name] = $controller;
-        }
-        static::$routes['GET'][$name] = $controller;
+    public static function basePattern($name, $pattern) {
+        static::$basePattern[$name] = $pattern;
     }
 
-    public static function pattern($name, $pattern) {
-        static::$pattern[$name] = $pattern;
+    protected function clear() {
+        $this->prefix = [];
+        $this->middlewares = [];
+        $this->current = [];
+        $this->pattern = [];
     }
 
-    public static function post($name, $controller) {
-        if (isset(static::$config['prefix'])) {
-            $name = static::$config['prefix']. $name;
+    protected function config($name, $val = null) {
+        if (is_array($name)) {
+            foreach($name as $k => $v) {
+                $this->config($k, $v);
+            }
+            return;
         }
-        if (isset(static::$config['middleware'])) {
-            $name = static::$config['prefix']. $name;
-            static::$middleware['POST'][$name] = $controller;
+        if (empty($val)) {
+            return ;
         }
-        static::$routes['POST'][$name] = $controller;
+        switch(strtolower($name)) {
+            case 'prefix':
+                $val = trim($val,'/');
+                $this->prefix = $this->prefix ? $this->prefix."/".$val : $val;
+                return;
+            case 'middleware':
+                $val = is_array($val) ? $val : [$val];
+                $this->middlewares = array_values(array_unique($this->middlewares + $val));
+                return;
+            case 'pattern':
+                $this->pattern = array_merge($this->pattern, $val);
+                return;
+        }
     }
 
-    public static function put($name, $controller) {
-        if (isset(static::$config['prefix'])) {
-            $name = static::$config['prefix']. $name;
+    public static function __callStatic($name, $arguments)
+    {
+        $instance = static::getInstance();
+        $instance->clear();
+        $name = '_'.$name;
+        if (method_exists($instance, $name)) {
+            return $instance->$name(...$arguments);
         }
-        if (isset(static::$config['middleware'])) {
-            $name = static::$config['prefix']. $name;
-            static::$middleware['PUT'][$name] = $controller;
-        }
-        static::$routes['PUT'][$name] = $controller;
+        throw new \Exception($name . '方法不存在');
     }
 
-    public static function delete($name, $controller) {
-        if (isset(static::$config['prefix'])) {
-            $name = static::$config['prefix']. $name;
+    public function __call($name, $arguments)
+    {
+        $name = '_'.$name;
+        if (method_exists($this, $name)) {
+            return $this->$name(...$arguments);
         }
-        if (isset(static::$config['middleware'])) {
-            $name = static::$config['prefix']. $name;
-            static::$middleware['DELETE'][$name] = $controller;
-        }
-        static::$routes['DELETE'][$name] = $controller;
+        throw new \Exception($name . '方法不存在');
     }
 
-    public static function resource($name, $controller) {
-        static::get($name, $controller."@index");
-        static::post($name, $controller."@store");
-        static::get($name.'/{id}', $controller."@show");
-        static::put($name.'/{id}', $controller."@update");
-        static::delete($name.'/{id}', $controller."@destory");
+    protected function _group($config, $callable = null) {
+        if (is_array($config)) {
+            $this->config($config);
+            is_callable($callable) && $callable($this);
+            return $this;
+        } elseif (is_callable($config)) {
+            $config($this);
+            return $this;
+        }
+    }
+
+    protected function _prefix($prefix, $callable = null) {
+        $this->config('prefix', $prefix);
+        is_callable($callable) && $callable($this);
+        return $this;
+    }
+
+    protected function _alias($alias) {
+        if (is_string($alias)) {
+            $route = current($this->current);
+            if ($route) {
+                static::$routeAlias[$alias] = $route;
+            }
+        } elseif(is_array($alias)) {
+            foreach ($alias as $func => $route) {
+                if (isset($this->current[$func])) {
+                    static::$routeAlias[$route] = $this->current[$func];
+                }
+            }
+        }
+        return $this;
+    }
+
+    protected function _pattern($key, $val = null) {
+        $routePatterns = [];
+        if (is_string($key)) {
+            $routePatterns[$key] = $val;
+        } elseif(is_array($key)) {
+            $routePatterns = $key;
+        }
+        foreach($this->current as $route) {
+            list($method, $path) = explode('#',$route ,2);
+            $old = static::$routePatterns[$method][$path] ?? [];
+            static::$routePatterns[$method][$path] = array_merge($old, $routePatterns);
+        }
+        return $this;
+    }
+
+    protected function _middleware($middleware, $callable = null) {
+        $this->config('middleware', $middleware);
+        is_callable($callable) && $callable($this);
+        return $this;
+    }
+
+    protected function common($method, $route, $controller, $config) { // 这里的$config 不具有传递性，不要写入路由
+        $prefix = '';
+        if ($this->prefix) {
+            $prefix .= $this->prefix.'/';
+        } if (isset($config['prefix'])) {
+            $prefix .= trim($config['prefix'],'/').'/';
+        }
+        $route = $prefix.$route;
+        if ($this->middlewares) {
+            static::$routeMiddlewares[$method][$route] = $this->middlewares;
+        }
+        
+        if (isset($config['middleware'])) {
+            static::$routeMiddlewares[$method][$route] += $config['middleware'];
+        }
+        if (isset($config['alias'])) {
+            static::$routeAlias[$config['alias']] = $method.'#'.$route;
+        }
+        $pattern = array_merge($this->pattern, $config['pattern'] ?? []);
+        if ($pattern) {
+            static::$routePatterns[$method][$route] = $pattern;
+        }
+        static::$allRoutes[$method][$route] = $controller;
+    }
+
+    
+    protected function _get($route, $controller, $config = []) {
+        $this->common('GET',$route, $controller, $config);
+        $this->current = ['GET#'.$route];
+        return $this;
+    }
+
+    protected function _post($route, $controller, $config = []) {
+        $this->common('POST',$route, $controller, $config);
+        $this->current = ['POST#'.$route];
+        return $this;
+    }
+
+    protected function _put($route, $controller, $config = []) {
+        $this->common('PUT',$route, $controller, $config);
+        $this->current = ['PUT#'.$route];
+    }
+
+    protected function _delete($route, $controller, $config = []) {
+        $this->common('DELETE',$route, $controller, $config);
+        $this->current = ['DELETE#'.$route];
+        return $this;
+    }
+
+    protected function _resource($route, $controller, $config = []) {
+        $this->_get($route, $controller."@index", $config);
+        $this->_post($route, $controller."@store", $config);
+        $this->_get($route.'/{id}', $controller."@show", $config);
+        $this->_put($route.'/{id}', $controller."@update", $config);
+        $this->_delete($route.'/{id}', $controller."@destory", $config);
+        $this->current = [
+            'index' => 'GET#'.$route,
+            'store' => 'POST#'.$route,
+            'show' => 'GET#'.$route.'/{id}',
+            'update' => 'PUT#'.$route.'/{id}',
+            'destory' => 'DELETE#'.$route.'/{id}',
+        ];
+        return $this;
     }
 
     /**
@@ -84,33 +213,40 @@ class Route
      */
     public static function match($route, $method = 'GET', &$bind = null, &$middleware = null) {
         $method = strtoupper($method);
-        if (!isset(static::$routes[$method])) {
-            throw new RouteNotMatchException("未匹配到路由1");
+        if (!isset(static::$allRoutes[$method])) {
+            throw new RouteNotMatchException("未匹配到路由");
         }
-        foreach(static::$routes[$method] as $name => $path) {
+        foreach(static::$allRoutes[$method] as $name => $path) {
             if (strpos($name, '{')) { // 含有参数项
-                $pattern = '/^'.str_replace('/', '\/', $name).'$/i';
-                $pertten = preg_replace_callback("/{(.*)}/", function ($r) {
-                    if (isset(static::$pattern[$r[1]])) {
-                        return "(?<{$r[1]}>".static::$pattern[$r[1]].')';
+                $raw = '/^'.str_replace('/', '\/', $name).'$/i';
+                // 替换正则式
+                $pattern = preg_replace_callback("/{(.*)}/", function ($r) use ($method, $name) {
+                    $routePattern = static::$routePatterns[$method][$name][$r[1]] ?? null;
+                    if ($routePattern) {
+                        return "(?<{$r[1]}>".$routePattern.')';
                     }
-                    return "(?<{$r[1]}>[a-z0-9]+)";
+                    $basePattern = static::$basePattern[$r[1]] ?? null;
+                    if (isset($basePattern)) {
+                        return "(?<{$r[1]}>".$basePattern.')';
+                    }
+                    return "(?<{$r[1]}>[^\/?#]+)";
                     
-                }, $pattern);
-                if (preg_match($pertten, $route, $match)) {
+                }, $raw);
+                if (preg_match($pattern, $route, $match)) {
                     unset($match[0]);
                     $bind = $match;
-                    $middleware = static::$middleware[$method][$name] ?? [];
+                    $middleware = static::$routeMiddlewares[$method][$name] ?? [];
                     list($controller, $func) =  explode("@", $path);
                     $controller = static::$ctr_ns.'\\'.$controller;
                     return [$controller,$func];
                 }
             } elseif ($name == $route) {
+                $middleware = static::$routeMiddlewares[$method][$name] ?? [];
                 list($controller, $func) =  explode("@", $path);
                 $controller = static::$ctr_ns.'\\'.$controller;
                 return [$controller,$func];
             }
         }
-        throw new RouteNotMatchException("未匹配到路由2:".$route);
+        throw new RouteNotMatchException("未匹配到路由:".$route);
     }
 }

@@ -69,11 +69,15 @@ class application
      */
     private function ini()
     {
-        $this->iniConfig = config('', [], 'app');
-        $this->ini_alias();
-        $this->ini_bind();
-        $this->ini_route();
-        $this->ini_middleware();
+        try {
+            $this->iniConfig = config('', [], 'app');
+            $this->ini_alias();
+            $this->ini_bind();
+            $this->ini_route();
+            $this->ini_middleware();
+        } catch(\Throwable $t) {
+            die($t);
+        }
     }
 
     private function ini_alias()
@@ -177,7 +181,11 @@ class application
         $arr = is_array($arr) ? $arr : [$arr];
         foreach($arr as $key) {
             // 别名替换成类名
-            $this->routeMiddleware[] = $this->iniConfig['route_middlewares'][$key];
+            if (isset($this->iniConfig['route_middleware'][$key])) {
+                $this->routeMiddleware[] = $this->iniConfig['route_middleware'][$key];
+            } else {
+                throw new CustomException('中间件 '.$key .' 不存在');
+            }
         }
     }
 
