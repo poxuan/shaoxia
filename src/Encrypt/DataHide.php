@@ -28,7 +28,7 @@ class DataHide
         $seedArr = [];
         $seedSum = 0;
         while($seed > 0) {
-            $newSeed = $seed % 64;
+            $newSeed = $seed & 63;
             $seedArr[] = $newSeed;
             $seedSum += $newSeed;
             $seed = $seed >> 6; 
@@ -42,7 +42,7 @@ class DataHide
             $char2 = $char1;
             $char1 = "";
             for($i = 0; $i < strlen($char2); $i++) { // 位置替换
-                $key = ($seed1 ^ $i + $seed2) % 64;
+                $key = ($seed1 ^ $i + $seed2) & 63;
                 $char1 .= $char2[$key];
             }
         }
@@ -95,7 +95,7 @@ class DataHide
             $check_count += ord($key[$i]);
         }
         // 倒数第一字符为校验位
-        $check_offset = $check_count % 64;
+        $check_offset = $check_count & 63;
         $key[$length - 1] = $pattern[$check_offset];
         // 倒数第二字符处，记录数据长度
         $length_offset = ($llen + $check_offset) % $plen;
@@ -114,7 +114,7 @@ class DataHide
             }
             // 校验位不一致，则解码失败
             $check_char = $hideStr[$length - 1];
-            if ($pattern[$check_count % 64] != $check_char) {
+            if ($pattern[$check_count & 63] != $check_char) {
                 return "";
             }
             $check_offset = strpos($pattern, $check_char);

@@ -43,10 +43,13 @@ class MyEncypt
         return ['hide' => $hide, 'show' => $show, 'data' => $data];
     }
 
-    public function dh_try($str, $raw = '')
+    public function dh_try($str, Request $r)
     {
         $s = microtime(true);
-        for($i=1;$i<0xffffff;$i++) {
+        $raw = $r->get('raw');
+        $start = $r->get('start', 0x3f000000);
+        $end = $r->get('end', $start + 0xff);
+        for($i=$start;$i<$end;$i++) {
             $dh = new DataHide($i);
             $res = $dh->showStr($str);
             if ($res) {
