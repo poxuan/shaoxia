@@ -6,6 +6,6 @@ class Test1
 {
     function handle($request, $next) {
         // echo "test 1\n";
-        return $next ? $next($request) : null;
+        return $next($request);
     }
 }

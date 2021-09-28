@@ -19,7 +19,8 @@ function config($name = '', $default = null, $file = 'config')
 
 function is_cli()
 {
-    return preg_match("/cli/i", php_sapi_name()) ? true : false;
+    $sapi = php_sapi_name();
+    return $sapi == 'cli' ? true : false;
 }
 
 function cli_uri() {

@@ -190,22 +190,22 @@ class DataHide
 			$llen = strlen($str);
 			$case = 1; // 大小写转换 1 小写 2 大写
 			$append = 0; // 额外长度
-            $extra = false;
+            $extra = null;
 			for($i = 0; $i < $llen; $i++) {
 				$p = strpos($pattern, $str[$i]);
-				if ($extra) { // 其他字符
+				if ($extra !== null) { // 其他字符
                     $append += 1;
                     $j = $i - $append;
                     $pre = (($extra - 1)^ ($j & 7)) << 5;
                     $fix = $p - $offset - ($j & 31);
                     $fix = $fix < 0 ? $fix + 32 : $fix;
                     $res .= chr($pre + $fix);
-                    $extra = false;
-                } elseif ($p < $offset) { // 大小写转换专用
+                    $extra = null;
+                } elseif ($p < $offset) { // 前区大小写转换用
                     // 当前大小写转换
                     $case = $case == 1 ? 2 : 1;
 					$append += 1;
-				} elseif ($p >= $offset + $to_base) {
+				} elseif ($p >= $offset + $to_base) { // 后区其他字符使用
                     $extra = $p - $offset - $to_base;
                 } else {
                     $e = $p - $offset - $i + $append;
@@ -236,7 +236,7 @@ class DataHide
 				} else {// 其他字符用后区扩展位
                     $ord = ord($str[$i]);
 					$key = ($ord >> 5) ^ ($i & 7);
-					$res .= $pattern[$from_base + $offset + $key + 1];
+					$res .= $pattern[$from_base + $offset + $key];
                     $res .= $pattern[$offset + (($ord + $i) & 31)];
 				}
 			}

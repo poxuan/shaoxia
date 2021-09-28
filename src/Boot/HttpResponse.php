@@ -26,33 +26,42 @@ class HttpResponse implements Response
     
     public function output() 
     {
-        $result = "";
-        $type = '';
-        if (!$this->type) {
-            $accept = request()->header('accept');
-            if ($accept && $accept != '*') {
-                $as = explode(",", $accept);
-                foreach($as as $a) {
-                    if ($a && strpos($a, '*') === false) {
-                        $type = $a;
-                        break;
+        try {
+            $type = '';
+            if (!$this->type) {
+                $accept = request()->header('accept');
+                if ($accept && $accept != '*') {
+                    $as = explode(",", $accept);
+                    foreach ($as as $a) {
+                        if ($a && strpos($a, '*') === false) {
+                            $type = $a;
+                            break;
+                        }
                     }
                 }
             }
-        }
-        switch(strtolower($type)) {
-            case 'json':
-            case 'application/json':
-                header('Content-Type: application/json');
-                echo json_encode($this->resource);
-                break;
-            case 'jsonp':
-            case 'application/jsonp':
-                $func = $_GET['callback'];
-                echo $func."(".json_encode($this->resource).")";
-                break;
-            default:
-                echo $result ?: "";
+            switch (strtolower($type)) {
+                case 'json':
+                case 'application/json':
+                    header('Content-Type: application/json');
+                    echo json_encode($this->resource);
+                    break;
+                case 'jsonp':
+                case 'application/jsonp':
+                    $func = $_GET['callback'];
+                    echo $func."(".json_encode($this->resource).")";
+                    break;
+                default:
+                    if(is_array($this->resource)) {
+                        echo json_encode($this->resource);
+                    } elseif(is_object($this->resource)) {
+                        echo json_encode($this->resource);
+                    } else {
+                        echo $this->resource ?: "";
+                    }
+            }
+        }catch(\Throwable $t) {
+            die($t);
         }
         
     }

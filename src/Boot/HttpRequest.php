@@ -66,8 +66,8 @@ class HttpRequest implements Request
     public function header($name = '',$default = null) {
         if (empty($this->headers)) {
             foreach($_SERVER as $key => $value) {
-                if (substr($name, 0, 5) == 'HTTP_') {
-                    $key = strtolower(str_replace('_', '-', substr($name, 5)));
+                if (substr($key, 0, 5) == 'HTTP_') {
+                    $key = strtolower(str_replace('_', '-', substr($key, 5)));
                     $this->headers[$key] = $value;
                 }
             }

@@ -226,13 +226,11 @@ class application
     protected function run_middleware($finalPoint)
     {
         $stack = array_merge($this->middleware, $this->routeMiddleware, [$finalPoint]);
-        if ($stack) {
-            $pipeline = array_reduce(
-                array_reverse($stack),
-                $this->carry()
-            );
-            return $pipeline($this->request);
-        }
+        $pipeline = array_reduce(
+            array_reverse($stack),
+            $this->carry()
+        );
+        return $pipeline($this->request);
     }
     
     protected function carry()

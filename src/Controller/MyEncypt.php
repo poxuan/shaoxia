@@ -16,7 +16,9 @@ class MyEncypt
     public function dh_hide($str = "")
     {
         $dh = new DataHide();
-        return $dh->hideStr($str);
+        $res = new \stdClass;
+        $res->hide = $dh->hideStr($str);
+        return $res;
     }
 
     public function dh_show($str = "")
