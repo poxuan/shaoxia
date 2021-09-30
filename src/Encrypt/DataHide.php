@@ -8,6 +8,10 @@ class DataHide
 {
     // 默认种子
     const DEFAULT_SEED = 0x3f4a819c;
+    
+    // 隐藏类型
+    const HIDE_FORMAT_JSON = 1;
+    const HIDE_FORMAT_SERIALIZE = 2;
     // 支持的字符
     protected $chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
     // 加密字符集
@@ -16,8 +20,7 @@ class DataHide
     protected $offset = 0;
     // 当前种子
     protected $seed = null;
-    protected $seedArr = [];
-    protected $seedSum = 0;
+    protected $checknum = 0;
 
     public function __construct(int $seed = self::DEFAULT_SEED)
     {
@@ -25,25 +28,23 @@ class DataHide
             throw new CustomException("加密种子仅支持正数");
         }
         $this->seed = $seed;
-        $seedArr = [];
-        $seedSum = 0;
+        $checknum = 0;
         while($seed > 0) {
             $newSeed = $seed & 63;
-            $seedArr[] = $newSeed;
-            $seedSum += $newSeed;
+            $checknum += $newSeed;
             $seed = $seed >> 6; 
         }
-        $this->seedArr = $seedArr;
-        $this->seedSum = $seedSum;
-        $this->offset = round($seedArr[0] / 64, 2);
+        $this->checknum = $checknum & 63;
+        $this->offset = round($this->checknum / 64, 2);
         $char1 = $this->chars;
-        foreach($seedArr as $seed1) {
-            $seed2 = $seed1 ? $this->seed % $seed1: 0;
-            $char2 = $char1;
-            $char1 = "";
-            for($i = 0; $i < strlen($char2); $i++) { // 位置替换
-                $key = ($seed1 ^ $i + $seed2) & 63;
-                $char1 .= $char2[$key];
+        $length = strlen($char1);
+        // 伪洗牌
+        for($i=0; $i < $length; $i++) {
+            $j = $i + ($this->seed % ($length - $i));
+            if ($i != $j) {
+                $c = $char1[$i];
+                $char1[$i] = $char1[$j];
+                $char1[$j] = $c;
             }
         }
         $this->encode_chars = $char1;
@@ -60,88 +61,117 @@ class DataHide
         return $str;
     }
 
-    public function hideStr($str = '', $length = null) 
-	{
+    public function s2c($str) {
         if (empty($str)) {
             return '';
         }
-		$pattern = $this->encode_chars;
-		$plen = strlen($pattern);
-        // 随机进制转换，此区间不要动，保证前后区长度控制均在8-20之间
         $to_base = rand(0x10, 0x1c);
         // 超过8位不使用系统进制转换方式
         $type = rand(0, 3);
         $rand = $to_base + ($type - 1) * 0x10; // 四种随机偏移
-        $prefix = $pattern[$rand]; // 进制前缀
+        $prefix = $this->encode_chars[$rand]; // 进制前缀
         $convert = $this->base_convert($str, 36, $to_base); // 替换值
-        $str = $prefix . $convert;
-        $llen = strlen($str); // 转换值
+        return $prefix.$convert;
+    }
+
+    public function hc($convert, $length = null) {
+        if (empty($raw)) return null;
+        $clen = strlen($convert); // 转换值
         if (empty($length)) { // 
-            $min_length = max(strlen($str) + 3, 7);
-            $max_length = $min_length + min(strlen($str), 31);
+            $min_length = max(strlen($convert) + 3, 7);
+            $max_length = $min_length + min(strlen($convert), 31);
             $length = rand($min_length, $max_length);
         }
-		$key = $this->randerStr($length);
-        if ($length - 2 >= $llen) { // 在除最后两位字符外的地方填充
-            for($i = 0; $i < $llen; $i++) {
-                $pos = intval(($i + $this->offset) * ($length - 2) / $llen);
-                $key[$pos] = $str[$i];
+		$randerStr = $this->randerStr($length);
+        if ($length - 2 >= $clen) { // 在除最后两位字符外的地方填充
+            for($i = 0; $i < $clen; $i++) {
+                $pos = intval(($i + $this->offset) * ($length - 2) / $clen);
+                $randerStr[$pos] = $convert[$i];
             }
         } else {
             throw new CustomException("生成长度不足");
         }
-		$check_count = $this->seedSum;
-        for ($i = 0; $i < $length - 2; $i++) {
-            $check_count += ord($key[$i]);
+		return $this->ac($randerStr, $clen, $length);
+    }
+
+    protected function ac($str, $clen, $rlen) {
+        $checknum = $this->checknum;
+        for ($i = 0; $i < $rlen - 2; $i++) {
+            $checknum += ord($str[$i]);
         }
         // 倒数第一字符为校验位
-        $check_offset = $check_count & 63;
-        $key[$length - 1] = $pattern[$check_offset];
+        $check_offset = $checknum & 63;
+		$plen = strlen($this->encode_chars);
+        $str[$rlen - 1] = $this->encode_chars[$check_offset];
         // 倒数第二字符处，记录数据长度
-        $length_offset = ($llen + $check_offset) % $plen;
-        $key[$length - 2] = $pattern[$length_offset];
-		return $key; 
+        $length_offset = ($clen + $check_offset) % $plen;
+        $str[$rlen - 2] = $this->encode_chars[$length_offset];
+        return $str;
+    }
+
+
+    public function hideStr($str = '', $length = null) 
+	{
+        return $this->hc($this->s2c($str), $length);
 	}
 
+    /**
+     * 显示正常值
+     */
+    public function c2s($convert) 
+	{
+        if (empty($convert)) return null;
+        $base = strpos($this->encode_chars, $convert[0]) % 0x10 + 0x10;
+        $raw = substr($convert, 1);
+        return $this->base_convert($raw, $base, 36);
+    }
+
+    /**
+     * 恢复成转换值
+     */
+    public function sh($hideStr) {
+        if (empty($hideStr)) return null;
+        $check_char = $this->ch($hideStr);
+        if (empty($check_char)) return null;
+        $length = strlen($hideStr);
+        $check_offset = strpos($this->encode_chars, $check_char);
+        $leng_char = $hideStr[$length - 2];
+        $llen = strpos($this->encode_chars, $leng_char) - $check_offset;
+        while($llen + 64 < $length) $llen += 64;
+        if ($llen > $length) return null;
+        $raw = "";
+        for ($i = 0; $i< $llen; $i++) {
+            $pos = intval(($i + $this->offset) * ($length - 2) / $llen);
+            $raw .= $hideStr[$pos];
+        }
+        return $raw;
+    }
+
+    /**
+     * 检查加密串是否正确
+     */
+    public function ch($hideStr) {
+        $pattern = $this->encode_chars;
+        $length = strlen($hideStr);
+        $checknum = $this->checknum;
+        for ($i = 0; $i < $length - 2; $i++) {
+            $checknum += ord($hideStr[$i]);
+        }
+        // 校验位不一致，则解码失败
+        $check_char = $hideStr[$length - 1];
+        if ($pattern[$checknum & 63] != $check_char) {
+            return null;
+        }
+        return $check_char;
+    }
+
+    /**
+     * 显示数据
+     */
 	public function showStr($hideStr) 
 	{
-        try {
-            $pattern = $this->encode_chars;
-            $length = strlen($hideStr);
-            $check_count = $this->seedSum;
-            for ($i = 0; $i < $length - 2; $i++) {
-                $check_count += ord($hideStr[$i]);
-            }
-            // 校验位不一致，则解码失败
-            $check_char = $hideStr[$length - 1];
-            if ($pattern[$check_count & 63] != $check_char) {
-                return "";
-            }
-            $check_offset = strpos($pattern, $check_char);
-            $leng_char = $hideStr[$length - 2];
-            $llen = strpos($pattern, $leng_char) - $check_offset;
-            while($llen + 64 < $length) {
-                $llen += 64;
-            }
-            if ($llen > $length) { // 不可能比它更长
-                return '';
-            }
-            $raw = "";
-            for ($i = 0; $i< $llen; $i++) {
-                $pos = intval(($i + $this->offset) * ($length - 2) / $llen);
-                $raw .= $hideStr[$pos];
-            }
-            $base = strpos($pattern, $raw[0]) % 0x10 + 0x10;
-            $raw = substr($raw, 1);
-            $res = $this->base_convert($raw, $base, 36);
-            return $res;
-        } catch(\Throwable $t) {
-            return '';
-        }
+        return $this->c2s($this->sh($hideStr));
 	}
-
-    const HIDE_FORMAT_JSON = 1;
-    const HIDE_FORMAT_SERIALIZE = 2;
 
     public function hideData($data, $type = self::HIDE_FORMAT_JSON) 
 	{
@@ -209,9 +239,7 @@ class DataHide
                     $extra = $p - $offset - $to_base;
                 } else {
                     $e = $p - $offset - $i + $append;
-                    while ($e < 0) {
-                        $e += $to_base;
-                    }
+                    while ($e < 0) $e += $to_base; 
                     $c = base_convert($e, 10, 36);
                     $res .= $case == 2 ? strtoupper($c) : $c;
                 }
