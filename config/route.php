@@ -29,5 +29,13 @@ Route::prefix('dh')->middleware('test3')->group(function($route) {
     $route->get("try", "MyEncypt@dh_try");
 });
 
+// 组配置
+Route::prefix('algo')->group(function($route) {
+    $route->get("sort", "Algorithm@sort");
+    $route->get("nqueen", "Algorithm@nqueen");
+    $route->get("sudoku", "Algorithm@sudoku");
+    $route->get("floordrop", "Algorithm@floordrop");
+});
+
 
 Route::get("decode/jsc", "Decode@jsc");

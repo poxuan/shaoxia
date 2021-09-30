@@ -10,44 +10,10 @@ function dynamic() {
 //             dp[状态1][状态2][...] = 求最值(选择1，选择2...)
 }
 
-class recall{
-    protected $result = [];
-
-    function backtrack($path, $list) {
-        if ($this->isOver()) {
-            $this->result[] = $path;
-            return;
-        }
-
-        foreach($list as $item) {
-            if ($this->available($path, $item)) {
-                $this->push($path, $item);
-                $this->backtrack($path, $list);
-                $this->pop($path);
-            }
-        }
-
-    }
-
-    function isOver() {
-        return true;
-    }
-
-    function available(){
-        return true;
-    }
-
-    function push($path, $item) {
-        return true;
-    }
-
-    function pop($path) {
-        return true;
-    }
-}
 
 
 
+// 广度优先搜索
 function bfs($start, $end) {
     $q = [];
     $visited = [];
@@ -73,7 +39,7 @@ function bfs($start, $end) {
     }
 }
 
-
+// 二分查找
 function binarySerrch($arr, $target) {
     $left = 0; $right = count($arr) - 1; // count($arr);
 
