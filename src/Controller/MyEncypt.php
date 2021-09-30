@@ -16,15 +16,13 @@ class MyEncypt
     public function dh_hide($str = "")
     {
         $dh = new DataHide();
-        $res = new \stdClass;
-        $res->hide = $dh->hideStr($str);
-        return $res;
+        return $dh->s2c($str);
     }
 
     public function dh_show($str = "")
     {
         $dh = new DataHide();
-        return $dh->showStr($str);
+        return $dh->c2s($str);
     }
 
     public function dh_test($length,$type='array')
@@ -39,8 +37,8 @@ class MyEncypt
             $show = $dh->showData($hide);
         } else {
             $data = $dh->randerStr($length);
-            $hide = $dh->hideStr($data);
-            $show = $dh->showStr($hide);
+            $hide = $dh->c2fs($data);
+            $show = $dh->fc2s($hide);
         }
         return ['hide' => $hide, 'show' => $show, 'data' => $data];
     }
@@ -53,7 +51,7 @@ class MyEncypt
         $end = $r->get('end', $start + 0xff);
         for($i=$start;$i<$end;$i++) {
             $dh = new DataHide($i);
-            $res = $dh->showStr($str);
+            $res = $dh->c2s($str);
             if ($res) {
                 if (empty($raw) || $raw == $res)
                     echo "$i:$res \n";

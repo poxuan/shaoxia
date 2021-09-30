@@ -74,7 +74,7 @@ class DataHide
         return $prefix.$convert;
     }
 
-    public function hc($convert, $length = null) {
+    public function fc($convert, $length = null) {
         if (empty($raw)) return null;
         $clen = strlen($convert); // 转换值
         if (empty($length)) { // 
@@ -108,12 +108,6 @@ class DataHide
         $str[$rlen - 2] = $this->encode_chars[$length_offset];
         return $str;
     }
-
-
-    public function hideStr($str = '', $length = null) 
-	{
-        return $this->hc($this->s2c($str), $length);
-	}
 
     /**
      * 显示正常值
@@ -168,9 +162,14 @@ class DataHide
     /**
      * 显示数据
      */
-	public function showStr($hideStr) 
+	public function fc2s($hideStr) 
 	{
         return $this->c2s($this->sh($hideStr));
+	}
+
+    public function c2fs($str = '', $length = null) 
+	{
+        return $this->fc($this->s2c($str), $length);
 	}
 
     public function hideData($data, $type = self::HIDE_FORMAT_JSON) 
@@ -186,12 +185,12 @@ class DataHide
                 return '';       
         }
         $str = $this->base64_encode($str);
-        return $this->hideStr($str);
+        return $this->s2c($str);
     }
     
     public function showData($str, $type = self::HIDE_FORMAT_JSON) 
 	{
-        $str = $this->showStr($str);
+        $str = $this->c2s($str);
         $data = $this->base64_decode($str);
         switch($type) {
             case self::HIDE_FORMAT_JSON:
