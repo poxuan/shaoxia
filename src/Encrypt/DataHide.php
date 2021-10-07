@@ -61,6 +61,9 @@ class DataHide
         return $str;
     }
 
+    /**
+     * 定长加密
+     */
     public function s2c($str) {
         if (empty($str)) {
             return '';
@@ -74,7 +77,10 @@ class DataHide
         return $prefix.$convert;
     }
 
-    public function fc($convert, $length = null) {
+    /**
+     * 定长 转 随机|指定长度
+     */
+    public function c2r($convert, $length = null) {
         if (empty($raw)) return null;
         $clen = strlen($convert); // 转换值
         if (empty($length)) { // 
@@ -89,12 +95,15 @@ class DataHide
                 $randerStr[$pos] = $convert[$i];
             }
         } else {
-            throw new CustomException("生成长度不足");
+            throw new CustomException("长度不足，生成失败");
         }
-		return $this->ac($randerStr, $clen, $length);
+		return $this->cal($randerStr, $clen, $length);
     }
 
-    protected function ac($str, $clen, $rlen) {
+    /**
+     * 设置校验和原长
+     */
+    protected function cal($str, $clen, $rlen) {
         $checknum = $this->checknum;
         for ($i = 0; $i < $rlen - 2; $i++) {
             $checknum += ord($str[$i]);
@@ -110,7 +119,7 @@ class DataHide
     }
 
     /**
-     * 显示正常值
+     * 定长解密
      */
     public function c2s($convert) 
 	{
@@ -121,18 +130,13 @@ class DataHide
     }
 
     /**
-     * 恢复成转换值
+     * 不定长转定长
      */
-    public function sh($hideStr) {
+    public function r2c($hideStr) {
         if (empty($hideStr)) return null;
-        $check_char = $this->ch($hideStr);
-        if (empty($check_char)) return null;
         $length = strlen($hideStr);
-        $check_offset = strpos($this->encode_chars, $check_char);
-        $leng_char = $hideStr[$length - 2];
-        $llen = strpos($this->encode_chars, $leng_char) - $check_offset;
-        while($llen + 64 < $length) $llen += 64;
-        if ($llen > $length) return null;
+        $llen = $this->lac($hideStr); 
+        if (!$llen) return null;
         $raw = "";
         for ($i = 0; $i< $llen; $i++) {
             $pos = intval(($i + $this->offset) * ($length - 2) / $llen);
@@ -142,9 +146,9 @@ class DataHide
     }
 
     /**
-     * 检查加密串是否正确
+     * 校验位检测
      */
-    public function ch($hideStr) {
+    public function lac($hideStr) {
         $pattern = $this->encode_chars;
         $length = strlen($hideStr);
         $checknum = $this->checknum;
@@ -156,20 +160,30 @@ class DataHide
         if ($pattern[$checknum & 63] != $check_char) {
             return null;
         }
-        return $check_char;
+        if (empty($check_char)) return null;
+        $length = strlen($hideStr);
+        $check_offset = strpos($this->encode_chars, $check_char);
+        $leng_char = $hideStr[$length - 2];
+        $llen = strpos($this->encode_chars, $leng_char) - $check_offset;
+        while($llen + 64 < $length) $llen += 64;
+        if ($llen > $length) return null;
+        return $llen;
     }
 
     /**
-     * 显示数据
+     * 不定长解密
      */
-	public function fc2s($hideStr) 
+	public function r2s($hideStr) 
 	{
-        return $this->c2s($this->sh($hideStr));
+        return $this->c2s($this->r2c($hideStr));
 	}
 
-    public function c2fs($str = '', $length = null) 
+    /**
+     * 不定长加密
+     */
+    public function s2r($str = '', $length = null) 
 	{
-        return $this->fc($this->s2c($str), $length);
+        return $this->c2r($this->s2c($str), $length);
 	}
 
     public function hideData($data, $type = self::HIDE_FORMAT_JSON) 

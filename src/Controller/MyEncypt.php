@@ -37,8 +37,8 @@ class MyEncypt
             $show = $dh->showData($hide);
         } else {
             $data = $dh->randerStr($length);
-            $hide = $dh->c2fs($data);
-            $show = $dh->fc2s($hide);
+            $hide = $dh->s2r($data);
+            $show = $dh->r2s($hide);
         }
         return ['hide' => $hide, 'show' => $show, 'data' => $data];
     }
