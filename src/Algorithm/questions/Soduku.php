@@ -8,6 +8,7 @@ namespace Shaoxia\Algorithm\Questions;
 class Soduku {
     private $results = [];
 
+    // 最多找几个结果
     private $max = 100;
 
     private $begin;
@@ -15,6 +16,13 @@ class Soduku {
     public function __construct($max = 100) 
     {
         $this->max = $max;
+        $this->clear();
+    }
+
+    /**
+     * 清空初始结果
+     */
+    public function clear() {
         $n = 9;
         $board = [];
         for($i=0;$i<$n;$i++) {
@@ -25,35 +33,41 @@ class Soduku {
         $this->begin = $board;
     }
 
+    /**
+     * 处理问题
+     */
     public function solve() 
     {
         $this->backtrack($this->begin, 0, 0);
         return $this->showAnswer();
     }
 
+    /**
+     * 初始化设置
+     */
     public function init($i, $j, $v, $alert = true) 
     {
         $range = range(1,9);
         if (!in_array($i, $range) || !in_array($j, $range) || !in_array($v, $range)) {
-            if ($alert) echo "$i, $j, $v 异常 均必须为 1-9 的整数 \n";
+            if ($alert) echo "初始值 $i, $j, $v 异常 均必须为 1-9 的整数 \n";
             return false;
         }
         if ($this->begin[$i-1][$j-1] != 0) {
-            if ($alert) echo "$i, $j 已有值 \n";
+            if ($alert) echo "位置 $i, $j 已有值 \n";
             return false;
         }
         if ($this->available($this->begin, $i-1, $j-1, $v)) {
             $this->begin[$i-1][$j-1] = $v;
             return true;
         } else {
-            if ($alert) echo "位置$i, $j 初始化 $v 异常\n";
+            if ($alert) echo "位置 $i, $j 初始化 $v 异常\n";
             return false;
         }
         
     }
 
     /**
-     * 显示初始化结果
+     * 随机初始化
      */
     public function rand($count = 10) 
     {
@@ -69,7 +83,7 @@ class Soduku {
     }
 
     /**
-     * 显示结果
+     * 显示随机一个结果
      */
     public function showAnswer() 
     {
