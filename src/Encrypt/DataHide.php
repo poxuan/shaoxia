@@ -62,19 +62,37 @@ class DataHide
     }
 
     /**
-     * 定长加密
+     * 随机进制加密
      */
     public function s2c($str) {
         if (empty($str)) {
             return '';
         }
-        $to_base = rand(0x10, 0x1c);
+        $to_base = rand(0x11, 0x1c);
         // 超过8位不使用系统进制转换方式
         $type = rand(0, 3);
         $rand = $to_base + ($type - 1) * 0x10; // 四种随机偏移
         $prefix = $this->encode_chars[$rand]; // 进制前缀
+        $str = $this->strBias($str, $type);
         $convert = $this->base_convert($str, 36, $to_base); // 替换值
         return $prefix.$convert;
+    }
+
+    /**
+     * 字符串偏置
+     */
+    protected function strBias($str, $type) {
+        switch ($type) {
+            case 0: // 原数据
+                return $str;
+            case 1: // 倒序
+                return implode('', array_reverse(str_split($str,1)));
+            default: // 分组倒序
+                $l = max($type, intval(strlen($str) / $type));
+                return implode('', array_map(function($item) {
+                    return implode('', array_reverse(str_split($item,1)));
+                }, str_split($str, $l)));
+        }
     }
 
     /**
@@ -124,9 +142,12 @@ class DataHide
     public function c2s($convert) 
 	{
         if (empty($convert)) return null;
-        $base = strpos($this->encode_chars, $convert[0]) % 0x10 + 0x10;
+        $pos = strpos($this->encode_chars, $convert[0]);
+        $base = $pos % 0x10 + 0x10;
+        $type = intval($pos / 0x10);
         $raw = substr($convert, 1);
-        return $this->base_convert($raw, $base, 36);
+        $str = $this->base_convert($raw, $base, 36);
+        return $this->strBias($str, $type);
     }
 
     /**
@@ -239,10 +260,11 @@ class DataHide
 				if ($extra !== null) { // 其他字符
                     $append += 1;
                     $j = $i - $append;
-                    $pre = (($extra - 1)^ ($j & 7)) << 5;
+                    $pre = ($extra ^ ($j & 7)) << 5;
                     $fix = $p - $offset - ($j & 31);
                     $fix = $fix < 0 ? $fix + 32 : $fix;
-                    $res .= chr($pre + $fix);
+                    $ord = $pre + $fix;
+                    $res .= chr($ord);
                     $extra = null;
                 } elseif ($p < $offset) { // 前区大小写转换用
                     // 当前大小写转换
@@ -277,8 +299,9 @@ class DataHide
 				} else {// 其他字符用后区扩展位
                     $ord = ord($str[$i]);
 					$key = ($ord >> 5) ^ ($i & 7);
-					$res .= $pattern[$from_base + $offset + $key];
-                    $res .= $pattern[$offset + (($ord + $i) & 31)];
+                    $fix = $pattern[$from_base + $offset + $key];
+                    $val = $pattern[$offset + (($ord + $i) & 31)];
+					$res .= $fix.$val;
 				}
 			}
 		}
