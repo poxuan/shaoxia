@@ -13,16 +13,16 @@ class MyEncypt
         
     }
     
-    public function dh_hide($str = "")
+    public function dh_hide($str = "",$type='s2c')
     {
         $dh = new DataHide();
-        return $dh->s2c($str);
+        return $dh->$type($str);
     }
 
-    public function dh_show($str = "")
+    public function dh_show($str = "",$type='c2s')
     {
         $dh = new DataHide();
-        return $dh->c2s($str);
+        return $dh->$type($str);
     }
 
     public function dh_test($length,$type='array')

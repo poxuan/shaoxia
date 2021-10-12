@@ -1,0 +1,31 @@
+<html>
+    <head>
+
+    </head>
+    <script src="./js/datahide.js" ></script>
+    <script>
+
+    </script>
+    <body>
+        <input id="dh_hide" type="text" name="dh_hide" value="" />
+        <input type="button" value="加密" onclick="dhb_hide()"/>
+
+        <input id="dh_show" type="text" name="dh_show" value="" />
+        <input type="button" value="解密" onclick="dhb_show()"/>
+    </body>
+    <script>
+        datahide.init(0x3f4a819c);
+        function dhb_hide() {
+            var v = document.getElementById('dh_hide').value;
+            var c = datahide.s2r(v);
+            console.log(c)
+            document.getElementById('dh_show').setAttribute('value',c);
+        }
+        function dhb_show() {
+            var v = document.getElementById('dh_show').value;
+            var s = datahide.r2s(v);
+            console.log(s)
+            document.getElementById('dh_hide').setAttribute('value',s);
+        }
+    </script>
+</html>

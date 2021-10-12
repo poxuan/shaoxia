@@ -88,10 +88,9 @@ class DataHide
             case 1: // 倒序
                 return implode('', array_reverse(str_split($str,1)));
             default: // 分组倒序
-                $l = max($type, intval(strlen($str) / $type));
                 return implode('', array_map(function($item) {
                     return implode('', array_reverse(str_split($item,1)));
-                }, str_split($str, $l)));
+                }, str_split($str, $type)));
         }
     }
 
@@ -99,7 +98,7 @@ class DataHide
      * 定长 转 随机|指定长度
      */
     public function c2r($convert, $length = null) {
-        if (empty($raw)) return null;
+        if (empty($convert)) return null;
         $clen = strlen($convert); // 转换值
         if (empty($length)) { // 
             $min_length = max(strlen($convert) + 3, 7);
