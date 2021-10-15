@@ -41,8 +41,8 @@
         var type = rand(0, 3);
         var p = to_base + (type - 1) * 0x10;
         var prefix = encode_chars.charAt(p);
-        str = strBias(str, type);
-        var convert = base_convert(str, 36, to_base);
+        var bytes = byteBias(str, type);
+        var convert = byteToString(base_convert(bytes, 36, to_base));
         return prefix + convert;
     }
     function c2s(convert) {
@@ -51,23 +51,45 @@
         base = pos % 0x10 + 0x10;
         type = parseInt(pos / 0x10);
         raw = convert.slice(1);
-        str = base_convert(raw, base, 36);
-        return strBias(str, type);
+        bytes = base_convert(raw, base, 36);
+        return byteToString(byteBias(bytes, type));
     }
-    function strBias(str, type) {
-        return str;
+    function byteBias(str, type) {
+        var bytes = Array.isArray(str) ? str : stringToByte(str);
+        var newBytes = new Array;
+        var tmpBytes = new Array;
+        switch(type) {
+            case 0:
+                return bytes;
+            case 1:
+                return bytes.reverse()
+            default:
+                for(var i = 0; i <  bytes.length; i++) {
+                    tmpBytes.push(bytes[i])
+                    if (tmpBytes.length >= type) {
+                        newBytes = newBytes.concat(tmpBytes.reverse())
+                        tmpBytes = []
+                    }
+                }
+                if (tmpBytes.length > 0) {
+                    newBytes = newBytes.concat(tmpBytes.reverse())
+                    tmpBytes = []
+                }
+                return newBytes;
+        }
     }
     function base_convert(str, from_base, to_base) {
-        var res = '';
+        bytes = Array.isArray(str) ? str : stringToByte(str);
         var offset = Math.abs(from_base - to_base);
         var pattern = encode_chars;
+        var resBytes = [];
+        llen = bytes.length;
         if (from_base < to_base) { // 目标编码大为解码
-			llen = str.length;
 			cs = 1; // 大小写转换 1 小写 2 大写
 			append = 0; // 额外长度
             extra = null;
 			for(i = 0; i < llen; i++) {
-				p = strpos(pattern, str.charAt(i));
+				p = strpos(pattern, String.fromCharCode(bytes[i]));
 				if (extra !== null) { // 其他字符
                     append += 1;
                     j = i - append;
@@ -75,7 +97,7 @@
                     fix = p - offset - (j & 31);
                     fix = fix < 0 ? fix + 32 : fix;
                     ord = pre + fix;
-                    res += String.fromCharCode(ord);
+                    resBytes.push(ord);
                     extra = null;
                 } else if (p < offset) { // 前区大小写转换用
                     // 当前大小写转换
@@ -87,42 +109,47 @@
                     e = p - offset - i + append;
                     while (e < 0) e += to_base; 
                     c = e.toString(36);
-                    res += (cs == 2 ? c.toUpperCase() : c);
+                    chr = cs == 2 ? c.toUpperCase() : c
+                    resBytes.push(chr.charCodeAt());
                 }
 			}
 		} else { // 加码
-			llen = str.length;
 			upcase = false;
 			for(var i = 0; i < llen; i++) {
-				if (/[0-9a-zA-Z]/.test(str.charAt(i))) {
+                var chr = String.fromCharCode(bytes[i])
+				if (/[0-9a-zA-Z]/.test(chr)) {
                     // 大小写转换用前区扩展位
-					if (!upcase && str.charAt(i) >= 'A' &&  str.charAt(i) <= 'Z') {
-						res += getChr(rand(0, offset - 1));
+					if (!upcase && chr >= 'A' &&  chr <= 'Z') {
+						resBytes.push(getOrd(rand(0, offset - 1)));
 						upcase = true;
 					}
-					if (upcase && str.charAt(i) >= 'a' &&  str.charAt(i) <= 'z') {
-						res += getChr(rand(0, offset - 1));
+					if (upcase && chr >= 'a' &&  chr <= 'z') {
+						resBytes.push(getOrd(rand(0, offset - 1)));
 						upcase = false;
 					}
-					e = parseInt(str.charAt(i), 36);
+					e = parseInt(chr, 36);
 					key = (e + i) % from_base + offset;
-					res += getChr(key);
+					resBytes.push(getOrd(key));
 				} else {// 其他字符用后区扩展位
-                    ord = str.charCodeAt(i);
+                    ord = bytes[i];
 					key = (ord >> 5) ^ (i & 7);
-                    fix = getChr(from_base + offset + key);
-                    val = getChr(offset + ((ord + i) & 31));
-					res += fix + val;
+                    fix = getOrd(from_base + offset + key);
+                    val = getOrd(offset + ((ord + i) & 31));
+					resBytes.push(fix);
+                    resBytes.push(val);
 				}
 			}
 		}
-		return res;
+		return resBytes;
     }
     function rand(bs, be) {
         return Math.floor(Math.random() * (be - bs + 1)) + bs
     }
     function getChr(p) {
         return encode_chars.charAt(p);
+    }
+    function getOrd(p) {
+        return getChr(p).charCodeAt();
     }
     function strpos(haystack, needle, start) {
         if (typeof(start)==="undefined") {
@@ -158,7 +185,6 @@
             length = rand(min_length, max_length);
         }
 		var randerStr = randomString(length);
-        console.log(convert);
         if (length - 2 >= clen) { // 在除最后两位字符外的地方填充
             for(var i = 0; i < clen; i++) {
                 pos = parseInt((i + offset) * (length - 2) / clen);
@@ -219,6 +245,57 @@
 	function r2s(hideStr) {
         return c2s(r2c(hideStr));
 	}
+    //字符串转字节序列
+    function stringToByte(str) {  
+        var bytes = new Array();  
+        var len, c;  
+        len = str.length;  
+        for(var i = 0; i < len; i++) {  
+            c = str.charCodeAt(i);  
+            if(c >= 0x010000 && c <= 0x10FFFF) {  
+                bytes.push(((c >> 18) & 0x07) | 0xF0);  
+                bytes.push(((c >> 12) & 0x3F) | 0x80);  
+                bytes.push(((c >> 6) & 0x3F) | 0x80);  
+                bytes.push((c & 0x3F) | 0x80);  
+            } else if(c >= 0x000800 && c <= 0x00FFFF) {  
+                bytes.push(((c >> 12) & 0x0F) | 0xE0);  
+                bytes.push(((c >> 6) & 0x3F) | 0x80);  
+                bytes.push((c & 0x3F) | 0x80);  
+            } else if(c >= 0x000080 && c <= 0x0007FF) {  
+                bytes.push(((c >> 6) & 0x1F) | 0xC0);  
+                bytes.push((c & 0x3F) | 0x80);  
+            } else {  
+                bytes.push(c & 0xFF);  
+            }  
+        }  
+        return bytes;
+    }
+
+    //字节序列转ASCII码
+    //[0x24, 0x26, 0x28, 0x2A] ==> "$&C*"
+    function byteToString(arr) {  
+        if(typeof arr === 'string') {  
+            return arr;  
+        }  
+        var str = '',  
+            _arr = arr;  
+        for(var i = 0; i < _arr.length; i++) {  
+            var one = _arr[i].toString(2),  
+                v = one.match(/^1+?(?=0)/);  
+            if(v && one.length == 8) {  
+                var bytesLength = v[0].length;  
+                var store = _arr[i].toString(2).slice(7 - bytesLength);  
+                for(var st = 1; st < bytesLength; st++) {  
+                    store += _arr[st + i].toString(2).slice(2);  
+                }  
+                str += String.fromCharCode(parseInt(store, 2));  
+                i += bytesLength - 1;  
+            } else {  
+                str += String.fromCharCode(_arr[i]);  
+            }  
+        }  
+        return str;  
+    }  
     function s_btoa(str) {
         return btoa(encodeURIComponent(str)).replace('+','_').replace('/','-').replace('=','')
     }
