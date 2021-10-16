@@ -268,10 +268,10 @@ class Application
     }
 
     /**
-     *  最终执行方法
+     *  执行获取结果
      */
     protected function handle() {
-        // 初始化控制器类，并设置为中间件末尾
+        // 初始化控制器类，并设置在中间件末尾
         $class = $this->ini_clazz($this->clazz);
         $params = $this->ini_param($class, $this->func, true);
         $finalPoint = new FinalHandle($class, $this->func, $params);
@@ -320,7 +320,7 @@ class Application
      * @return object
      * @throws CustomException
      */
-    protected function ini_clazz($clazz, $single = true)
+    public function ini_clazz($clazz, $single = true)
     {
         if ($single && $ins = $this->instand[$clazz] ?? null) {
             return $ins;
@@ -357,7 +357,7 @@ class Application
      * @return array
      * @throws CustomException
      */
-    protected function ini_param($clazz, $func, $is_route = false)
+    public function ini_param($clazz, $func, $is_route = false)
     {
         $method = new \ReflectionMethod($clazz, $func);
         foreach ($method->getParameters() as $param) {
@@ -375,6 +375,36 @@ class Application
                 $params[] = $param->getDefaultValue();
             } else {
                 throw New CustomException("类 {$clazz} 的方法 {$func} 中参数 {$name} 不能初始化");
+            }
+        }
+        return $params;
+    }
+
+    /**
+     * 初始化类的参数
+     * 
+     * @param string $func 方法名
+     * @param bool $is_route 是否路由类
+     * 
+     * @return array
+     * @throws CustomException
+     */
+    public function ini_func_param($func)
+    {
+        $method = new \ReflectionFunction($func);
+        foreach ($method->getParameters() as $param) {
+            $name    = $param->getName();
+            $clazz2  = $param->getClass();
+            if ($clazz2) { // 当前参数有定义类
+                $params[] = $this->ini_clazz($clazz2->getName());
+            } elseif ($param->isPassedByReference() && !$param->isDefaultValueAvailable()) { // 当前参数是引用？
+                throw new CustomException("方法 {$func} 中参数 {$name} 是引用，无法实例化");
+            } elseif($this->request->has($name)) { // 请求参数中有此值
+                $params[] = $this->request->get($name);
+            } elseif ($param->isDefaultValueAvailable()) { // 参数有默认值
+                $params[] = $param->getDefaultValue();
+            } else {
+                throw New CustomException("方法 {$func} 中参数 {$name} 不能初始化");
             }
         }
         return $params;

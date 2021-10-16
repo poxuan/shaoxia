@@ -5,7 +5,7 @@ use Shaoxia\Boot\Route;
 // 自此以下，文件全局配置
 Route::baseGroup("api", [
     // 以下是目前支持的全部配置参数
-    'namespace' => 'App\Controller', // 公共名字空间
+    'namespace' => 'App\Controller', // 公共名字空间，默认值就是这个
     'prefix' => '',   // 公共路由前缀
     'middleware' => [ // 组公共中间件
         'test2'
