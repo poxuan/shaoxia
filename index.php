@@ -13,7 +13,11 @@ define("TMP_PATH", ROOT_PATH.'tmp'.DS);
 require ROOT_PATH . '/vendor/autoload.php';
 require ROOT_PATH . '/helper.php';
 
-$app = require ROOT_PATH.'/bootstrap.php';
+$app = app();
+// 手动绑定，错误处理类
+$app->bind(
+    Shaoxia\Boot\ExceptionHandler::class,
+    Shaoxia\Exceptions\ErrorHandler::class
+);
 
-// 执行请求
 $app->exec();

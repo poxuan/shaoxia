@@ -9,16 +9,16 @@ return [
     'alias' => [
         
     ],
-    // 中间件
+    // 全局中间件
     "middleware" => [
-        Shaoxia\Middleware\Test1::class,
-        Shaoxia\Middleware\Test2::class,
+        App\Middleware\Test1::class,
     ],
     // 路由中间件
     'route_middleware' => [
-        'test3' => Shaoxia\Middleware\Test3::class,
+        'test2' => App\Middleware\Test2::class,
+        'test3' => App\Middleware\Test3::class,
     ],
-    // 路由组
+    // 载入路由组
     'router' => [
         'api'
     ]

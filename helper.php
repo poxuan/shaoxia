@@ -47,12 +47,11 @@ function cli_uri() {
 /**
  * 获取 Application 实例
  * 
- * @return application
+ * @return Shaoxia\Application
  */
 function app()
 {
-    require_once ROOT_PATH . '/application.php';
-    return application::getInstance(is_cli());
+    return Shaoxia\Application::getInstance(is_cli());
 }
 
 /**
