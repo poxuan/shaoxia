@@ -17,5 +17,9 @@ return [
     // 路由中间件
     'route_middleware' => [
         'test3' => Shaoxia\Middleware\Test3::class,
+    ],
+    // 路由组
+    'router' => [
+        'api'
     ]
 ];

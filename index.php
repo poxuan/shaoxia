@@ -1,11 +1,13 @@
 <?php
 
-define("ROOT_PATH", __DIR__);
+// 定义路径
 define("DS", DIRECTORY_SEPARATOR);
-define("CONFIG_PATH", ROOT_PATH.DS.'config');
-define("SRC_PATH", ROOT_PATH.DS.'src');
-define("STORAGE_PATH", ROOT_PATH.DS.'storage');
-define("TMP_PATH", ROOT_PATH.DS.'tmp');
+define("ROOT_PATH", __DIR__.DS);
+define("CONFIG_PATH", ROOT_PATH.'config'.DS);
+define("ROUTER_PATH", ROOT_PATH.'router'.DS);
+define("SRC_PATH", ROOT_PATH.'src'.DS);
+define("STORAGE_PATH", ROOT_PATH.'storage'.DS);
+define("TMP_PATH", ROOT_PATH.'tmp'.DS);
 
 
 require ROOT_PATH . '/vendor/autoload.php';
@@ -13,4 +15,5 @@ require ROOT_PATH . '/helper.php';
 
 $app = require ROOT_PATH.'/bootstrap.php';
 
+// 执行请求
 $app->exec();

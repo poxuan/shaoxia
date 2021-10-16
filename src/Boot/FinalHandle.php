@@ -16,9 +16,9 @@ class FinalHandle
     }
 
     public function handle($request, $next) {
-        // echo "test e1\n";
+        // 如果有中间件就调用
         $next ? $next($request) : null;
-        // echo "test e2\n";
+        // 执行控制器方法
         $result = call_user_func_array([$this->clazz, $this->func], $this->params);
         return $result;
     }

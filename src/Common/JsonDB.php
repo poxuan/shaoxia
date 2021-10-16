@@ -28,7 +28,7 @@ class JsonDB{
     public function open($dbname='',$id=''){
         if(empty($dbname))return false;
         $dbname=$this->data_type?$this->getTable($dbname,$id):$dbname;
-        $this->dat_path = $this->dbpath.DS.$dbname.'.json';return true;        
+        $this->dat_path = $this->dbpath.$dbname.'.json';return true;        
     }
     /**
      * 添加数据 初始化时建议采用

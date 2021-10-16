@@ -35,7 +35,7 @@ class Filedb
         try {
             $s = microtime(true);
             $db = new CuteDB();
-            $db->open(STORAGE_PATH . DS .'cuser');
+            $db->open(STORAGE_PATH .'cuser');
             $i = 1;
             do {
                 $db->set($i, serialize([
@@ -96,7 +96,7 @@ class Filedb
         try {
             $s = microtime(true);
             $db = new CuteDB();
-            $db->open(STORAGE_PATH . DS .'cuser');
+            $db->open(STORAGE_PATH .'cuser');
             var_dump($db->get(rand(1,10000)));
             $e = microtime(true);
             var_dump($e-$s);

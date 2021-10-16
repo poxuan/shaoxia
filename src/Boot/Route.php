@@ -9,21 +9,23 @@ class Route
     // 控制器名字空间
     protected static $ctr_ns = 'Shaoxia\Controller';
     
+    // 当前组配置
     protected $current = [];
     protected $prefix = '';
     protected $middlewares = [];
     protected $pattern = [];
 
+    // 所有路由
     protected static $allRoutes = [];
-    // 路由中间件
+    // 路由对应中间件
     protected static $routeMiddlewares = [];
-    // 路由模式匹配
+    // 路由对应模式匹配
     protected static $routePatterns = [];
-    // 路由别名
+    // 路由对应别名
     protected static $routeAlias = [];
-    // 匹配
+    // 全局模式匹配
     protected static $basePattern = [];
-
+    // 实例
     protected static $instance = null;
 
     public static function getInstance() {
@@ -44,6 +46,9 @@ class Route
         $this->pattern = [];
     }
 
+    /**
+     * 配置项处理
+     */
     protected function config($name, $val = null) {
         if (is_array($name)) {
             foreach($name as $k => $v) {
@@ -69,6 +74,9 @@ class Route
         }
     }
 
+    /**
+     * 静态调用会清空当前实例，后续操作基于当前实例状态
+     */
     public static function __callStatic($name, $arguments)
     {
         $instance = static::getInstance();
@@ -80,6 +88,9 @@ class Route
         throw new \Exception($name . '方法不存在');
     }
 
+    /**
+     * 非静态调用，基于当前实例处理
+     */
     public function __call($name, $arguments)
     {
         $name = '_'.$name;
@@ -106,6 +117,7 @@ class Route
         return $this;
     }
 
+    // 后置操作，设置别名
     protected function _alias($alias) {
         if (is_string($alias)) {
             $route = current($this->current);
@@ -122,6 +134,7 @@ class Route
         return $this;
     }
 
+    // 后置操作，设置模式匹配
     protected function _pattern($key, $val = null) {
         $routePatterns = [];
         if (is_string($key)) {
@@ -137,12 +150,14 @@ class Route
         return $this;
     }
 
+    // 前值操作，设置中间件
     protected function _middleware($middleware, $callable = null) {
         $this->config('middleware', $middleware);
         is_callable($callable) && $callable($this);
         return $this;
     }
 
+    // 通用设置
     protected function common($method, $route, $controller, $config) { // 这里的$config 不具有传递性，不要写入路由
         $prefix = '';
         if ($this->prefix) {

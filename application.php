@@ -11,8 +11,9 @@ use Shaoxia\Exceptions\RouteNotMatchException;
 
 class application
 {
+    // 实例 单例
     private static $instance = null;
-    
+    // 是否时命令行模式
     private $is_cli = false;
     // 初始化配置数组，在 /config/app.php 中配置
     private $iniConfig = [];
@@ -20,20 +21,27 @@ class application
     private $request = null;
     // 返回处理类
     private $response = null;
+    // 别名关系
+    private $alias = [];
     // 绑定关系
     private $binded = [];
+    // 绑定实例
     private $instand = [];
     // 全局中间件
     private $middleware = [];
     // 路由结果
-    private $clazz = null;    // 最终执行类
-    private $func = null;     // 最终执行方法
-    private $routeParams = []; // 路径中参数
+    private $clazz = null;         // 最终执行类
+    private $func = null;          // 最终执行方法
+    private $routeParams = [];     // 路径中参数
     private $routeMiddleware = []; // 路由中间件
+
 
     private function __construct($is_cli)
     {
+        // 其他初始化
+        echo 1;
         $this->ini();
+        // 绑定请求和返回处理类
         if ($is_cli) {
             $this->is_cli = true;
             $this->request = new Shaoxia\Boot\CliRequest();
@@ -43,12 +51,12 @@ class application
             $this->response = new Shaoxia\Boot\HttpResponse();
         }
         // 绑定请求处理类
-        $this->binded[Request::class] = $this->request;
-        $this->binded[Response::class] = $this->response;
+        $this->bind(Request::class, $this->request);
+        $this->bind(Response::class, $this->response);
     }
 
     /**
-     * 单例
+     * 获取实例
      * 
      * @return self
      */
@@ -71,8 +79,12 @@ class application
     private function ini()
     {
         try {
+
             $this->iniConfig = config('', [], 'app');
+            echo 2;
+
             $this->ini_alias();
+
             $this->ini_bind();
             $this->ini_route();
             $this->ini_middleware();
@@ -81,38 +93,61 @@ class application
         }
     }
 
+    /**
+     * 别名初始化
+     */
     private function ini_alias()
     {
+        $this->alias = $this->iniConfig['alias'];
         foreach ($this->iniConfig['alias'] as $alias => $clazz) {
             class_alias($clazz, $alias);
             class_uses($alias);
         }
     }
 
+    /**
+     * 绑定初始化
+     */
     private function ini_bind()
     {
-        $this->binded = $this->iniConfig['bindings'] ?? [];
+        foreach ($this->iniConfig['bindings'] as $abstract => $closure) {
+            $this->bind($abstract, $closure);
+        }
     }
 
+    /**
+     * 全局中间件
+     */
     private function ini_middleware()
     {
         $this->middleware = $this->iniConfig['middleware'] ?? [];
     }
 
+    /**
+     * 路由初始化
+     */
     private function ini_route() 
     {
-        require_once CONFIG_PATH . '/route.php';
+        $routes = $this->iniConfig['router'] ?? ['route'];
+        foreach($routes as $route) {
+            require_once ROUTER_PATH . '/'.$route.'.php';
+        }
     }
 
     /**
-     * 绑定
+     * 绑定实例或类
      * 
      * @param string $abstract 虚类
      * @param string|object $closure 实例（类）
      */
     public function bind($abstract, $closure)
     {
-        $this->binded[$abstract] = $closure;
+        if (is_object($closure)) { // 本身就实例过的
+            $this->binded[$abstract] = get_class($closure);
+            $this->instand[$abstract] = $closure;
+        } else { // 绑定关系
+            $this->binded[$abstract] = $closure;
+        }
     }
 
     /**
@@ -125,6 +160,7 @@ class application
     {
         class_alias($clazz, $alias);
         class_uses($alias);
+        $this->alias[$alias] = $clazz;
     }
 
     /**
@@ -136,14 +172,22 @@ class application
      */
     public function __get($name)
     {
-        if ($this->binded[$name]) {
-            return $this->ini_clazz($name);
+        // 如果有别名，先转为原名
+        if (isset($this->alias[$name])) {
+            $name = $this->alias[$name];
+        }
+        if ($this->instand[$name]) { // 已经实例化的，返回实例
+            return $this->instand[$name];
+        } elseif ($this->binded[$name]) { // 有绑定的，实例化后返回
+            $instand = $this->ini_clazz($name);
+            $this->instand[$name] = $instand;
+            return $instand;
         }
         return null;
     }
 
     /**
-     * 解析控制器和方法名
+     * 解析路由获取控制器和方法名
      * 
      * @return bool
      * @throws CustomException
@@ -178,6 +222,11 @@ class application
         return $this->request;
     }
 
+    /**
+     * 设置路由中间件
+     * 
+     * @param string|array $arr 中间件数组
+     */
     protected function setRouteMiddleware($arr) {
         $arr = is_array($arr) ? $arr : [$arr];
         foreach($arr as $key) {
@@ -212,17 +261,22 @@ class application
         }
     }
 
-    // 最终执行方法
+    /**
+     *  最终执行方法
+     */
     protected function handle() {
-        // 最后的执行类设为尾节点
+        // 初始化控制器类，并设置为中间件末尾
         $class = $this->ini_clazz($this->clazz);
         $params = $this->ini_param($class, $this->func, true);
         $finalPoint = new FinalHandle($class, $this->func, $params);
         return $this->run_middleware($finalPoint);
     }
 
-
-    // 依次执行中间件
+    /**
+     * 依次执行中间件
+     * 
+     * @param mixed 尾节点
+     */
     protected function run_middleware($finalPoint)
     {
         $stack = array_merge($this->middleware, $this->routeMiddleware, [$finalPoint]);
@@ -233,6 +287,11 @@ class application
         return $pipeline($this->request);
     }
     
+    /**
+     * 构建中间件
+     * 
+     * @return closure
+     */
     protected function carry()
     {
         return function ($stack, $pipe) {
@@ -262,18 +321,18 @@ class application
         }
         $clazz2 = $clazz;
         if ($c = $this->binded[$clazz] ?? null) {
-            if (is_object($c)) { // 如果已经实例化,直接返回
-                $this->instand[$clazz] = $c;
-                return $c;
+            if ($this->instand[$clazz] ?? null) { // 如果已经实例化,直接返回
+                return $this->instand[$clazz];
             } elseif (class_exists($c)) { // 如果是个类名,改为被绑定类
                 $clazz2 = $c;
             }
         }
-        if (!class_exists($clazz2)) {
-            throw new MethodNotFoundException("class {$clazz} not found");
-        }
         if (!method_exists($clazz2, '__construct')) { // 没有构造类直接生成
             return new $clazz2();
+        }
+        $method = new ReflectionMethod($clazz2, '__construct');
+        if (!$method->isPublic()) {
+            throw New CustomException("类 {$clazz} 的 构造函数 是私有的");
         }
         // 先生成构造参数，再初始化
         $params = $this->ini_param($clazz2, '__construct');
@@ -295,15 +354,12 @@ class application
     protected function ini_param($clazz, $func, $is_route = false)
     {
         $method = new ReflectionMethod($clazz, $func);
-        if (!$method->isPublic()) {
-            throw New CustomException("类 {$clazz} 的方法 {$func} 是私有的");
-        }
         foreach ($method->getParameters() as $param) {
             $name    = $param->getName();
             $clazz2  = $param->getClass();
             if ($clazz2) { // 当前参数有定义类
                 $params[] = $this->ini_clazz($clazz2->getName());
-            } elseif ($param->isPassedByReference()) { // 当前参数是引用？
+            } elseif ($param->isPassedByReference() && !$param->isDefaultValueAvailable()) { // 当前参数是引用？
                 throw new CustomException("类 {$clazz} 的方法 {$func} 中参数 {$name} 是引用，无法实例化");
             } elseif ($is_route && isset($this->routeParams[$name])) { // 当前类是控制器类，且有此路由参数
                 $params[] = $this->routeParams[$name];

@@ -42,8 +42,8 @@ trait ImageSave
             $dstName = $dstImgName . ($filetype ?: $this->imageinfo['type']);
         }
         $funcs = "image" . ($filetype ?: $this->imageinfo['type']);
-        $funcs($this->image, $savepath .DS. $dstName);
-        return $savepath .DS. $dstName;
+        $funcs($this->image, $savepath . $dstName);
+        return $savepath . $dstName;
     }
 
     /**
@@ -61,7 +61,7 @@ trait ImageSave
         }
 
         // 临时保存到 tmp 目录下
-        $localName = $this->savepath .DS. uniqid();
+        $localName = $this->savepath . uniqid();
         $funcs = "image" . ($filetype ?: $this->imageinfo['type']);
         $res = $funcs($this->image, $localName);
         if (!$res) {

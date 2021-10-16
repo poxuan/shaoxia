@@ -36,13 +36,13 @@ class BtreeDB
         $this->_save();
         
         if ($lock) {
-            $lock_path = $this->db_path . DS . $table . '.lk';
+            $lock_path = $this->db_path . $table . '.lk';
             $this->file = fopen($lock_path, 'w+');
             if (!flock($this->file, LOCK_EX)) {
                 throw new \Exception('数据库加锁失败');
             }
         }
-        $this->db_file = $this->db_path . DS . $table . '.bp';
+        $this->db_file = $this->db_path . $table . '.bp';
         $this->index_key = $index_key ?: 'id';
         if (file_exists($this->db_file)) {
             $this->bptree = unserialize(file_get_contents($this->db_file));

@@ -12,11 +12,17 @@ class CliRequest implements Request
         $this->getOptions();
     }
 
+    /**
+     * 获取参数
+     */
     public function get($name,$default = null) 
     {
         return $this->getOption($name,$default);
     }
 
+    /**
+     * 获取命令行参数作为参数
+     */
     public function getOptions()
     {
         if ($this->options !== null) {
@@ -44,6 +50,9 @@ class CliRequest implements Request
         return $options;
     }
 
+    /**
+     * 参数是否存在
+     */
     public function has($name) 
     {
         if (isset($this->options[$name])) {

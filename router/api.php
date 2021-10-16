@@ -30,7 +30,7 @@ Route::prefix('dh')->middleware('test3')->group(function($route) {
 });
 
 // 组配置
-Route::prefix('algo')->group(function($route) {
+Route::prefix('algo')->middleware('test3')->group(function($route) {
     $route->get("sort", "Algorithm@sort");
     $route->get("nqueen", "Algorithm@nqueen");
     $route->get("sudoku", "Algorithm@sudoku");
