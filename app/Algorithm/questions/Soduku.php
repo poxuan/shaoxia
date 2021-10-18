@@ -144,9 +144,6 @@ class Soduku {
 
     public function available($board, $x, $y, $p) 
     {
-        if ($board[$x][$y] == $p) { // 已经初始化为此值
-            return true;
-        }
         if ($board[$x][$y] != 0) {
             return false; // 已经初始化填入
         }
