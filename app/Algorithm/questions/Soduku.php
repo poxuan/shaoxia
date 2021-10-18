@@ -9,11 +9,11 @@ class Soduku {
     private $results = [];
 
     // 最多找几个结果
-    private $max = 100;
+    private $max = 1;
 
     private $begin;
 
-    public function __construct($max = 100) 
+    public function __construct($max = 1) 
     {
         $this->max = $max;
         $this->clear();
@@ -119,6 +119,14 @@ class Soduku {
             return true;
         }
 
+        if ($board[$x][$y] > 0) { // 此位置已有初始值。直接去下一位
+            if ($y >= 8) {
+                $res = $this->backtrack($board, $x+1, 0);
+            } else {
+                $res = $this->backtrack($board, $x, $y + 1);
+            }
+            return $res;
+        }
         for($i = 1; $i <= 9; $i++) {
             if ($this->available($board, $x, $y, $i)) {
                 $board[$x][$y] = $i;
