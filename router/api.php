@@ -1,8 +1,9 @@
 <?php
 
-use Shaoxia\Boot\Route;
+// 设置别名后这个就不用了,
+// use Shaoxia\Boot\Route;
 
-// 自此以下，文件全局配置
+// 自此以下，全局配置
 Route::baseGroup("api", [
     // 以下是目前支持的全部配置参数
     'namespace' => 'App\Controller', // 公共名字空间，默认值就是这个

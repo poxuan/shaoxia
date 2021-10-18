@@ -3,11 +3,11 @@
 return [
     // 绑定
     "bindings" => [
-        
+        Shaoxia\Boot\ExceptionHandler::class => Shaoxia\Exceptions\ErrorHandler::class, // 异常处理绑定
     ],
     // 别名
     'alias' => [
-        
+        "Route" => Shaoxia\Boot\Route::class
     ],
     // 全局中间件
     "middleware" => [
