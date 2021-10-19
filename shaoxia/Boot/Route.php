@@ -2,6 +2,7 @@
 
 namespace Shaoxia\Boot;
 
+use Shaoxia\Exceptions\CustomException;
 use Shaoxia\Exceptions\RouteNotMatchException;
 
 class Route
@@ -16,6 +17,8 @@ class Route
 
     // 所有路由
     protected static $allRoutes = [];
+    // 路由的完整正则数组
+    protected static $urlPatterns = null;
     // 路由对应中间件
     protected static $routeMiddlewares = [];
     // 路由对应模式匹配
@@ -140,9 +143,9 @@ class Route
                 static::$routeAlias[$alias] = $route;
             }
         } elseif(is_array($alias)) {
-            foreach ($alias as $func => $route) {
+            foreach ($alias as $func => $name) {
                 if (isset($this->currentRoute[$func])) {
-                    static::$routeAlias[$route] = $this->currentRoute[$func];
+                    static::$routeAlias[$name] = $this->currentRoute[$func];
                 }
             }
         }
@@ -262,59 +265,109 @@ class Route
     }
 
     protected function _resource($route, $controller, $config = []) {
-        $this->_get($route, $controller."@index", $config);
-        $this->_post($route, $controller."@store", $config);
-        $this->_get($route.'/{id}', $controller."@show", $config);
-        $this->_put($route.'/{id}', $controller."@update", $config);
-        $this->_delete($route.'/{id}', $controller."@destory", $config);
-        $this->currentRoute = [
+        $rs = $config['only'] ?? ['index','store','show','update','destory'];
+        $rs = array_diff($rs, $config['except'] ?? []);
+        in_array('index', $rs) && $this->_get($route, $controller."@index", $config);
+        in_array('store', $rs) && $this->_post($route, $controller."@store", $config);
+        in_array('show', $rs) && $this->_get($route.'/{id}', $controller."@show", $config);
+        in_array('update', $rs) && $this->_put($route.'/{id}', $controller."@update", $config);
+        in_array('destory', $rs) && $this->_delete($route.'/{id}', $controller."@destory", $config);
+        $routes = [
             'index' => 'GET#'.$route,
             'store' => 'POST#'.$route,
             'show' => 'GET#'.$route.'/{id}',
             'update' => 'PUT#'.$route.'/{id}',
             'destory' => 'DELETE#'.$route.'/{id}',
         ];
+        foreach($routes as $k => $v) {
+            if (!in_array($k, $rs)) {
+                unset($routes[$k]);
+            }
+        }
+        $this->currentRoute = $routes;
         return $this;
+    }
+
+    /**
+     * 将所有路由转成正则
+     */
+    protected static function urlPatterns() {
+        if (is_null(self::$urlPatterns)) {
+            self::$urlPatterns = [];
+            foreach(static::$allRoutes as $method => $routes) {
+                foreach($routes as $route => $ctrl) {
+                    $pattern = static::makePattern($route, $method);
+                    self::$urlPatterns[$pattern][$method] = $route;
+                }
+            }
+        }
+        return self::$urlPatterns;
+    }
+
+    /**
+     * 按规则生成路由
+     */
+    protected static function makePattern($route, $method) {
+
+        $raw = '/^'.str_replace(['/', '-', '.'],['\/','\-','\.'], $route).'$/i';
+        // 替换正则式
+        $pattern = preg_replace_callback("/{(.*)}/", function ($r) use ($method, $route) {
+            $routePattern = static::$routePatterns[$method][$route][$r[1]] ?? null;
+            if ($routePattern) {
+                return "(?<{$r[1]}>".$routePattern.')';
+            }
+            $basePattern = static::$basePattern[$r[1]] ?? null;
+            if (isset($basePattern)) {
+                return "(?<{$r[1]}>".$basePattern.')';
+            }
+            return "(?<{$r[1]}>[^\/?#]+)"; // 匹配除了 /?# 之外的字符
+        }, $raw);
+        return $pattern;
+    }
+
+    /**
+     * 通过别名生成uri
+     */
+    public static function makeUri($name, $attributies = []) {
+        if (isset(static::$routeAlias[$name])) { // 如果找到了别名
+            $raw = static::$routeAlias[$name];
+            list($method, $route) = explode("#", $raw);
+            $route = preg_replace_callback("/{(.*)}/", function ($r) use (& $attributies, $name) {
+                if ($attributies[$r[1]] ?? '') {
+                    $rep = $attributies[$r[1]];
+                    unset($attributies[$r[1]]);
+                    return $rep;
+                } else {
+                    throw new CustomException("路由 {$name} 需指定参数 {$r[1]}");
+                }
+            }, $route);
+            return $route.($attributies ? "?" . http_build_query($attributies) : "");
+        }
+        // 否则直接处理
+        return $name.($attributies ? "?" . http_build_query($attributies) : "");
     }
 
     /**
      * 获取匹配的路由
      */
-    public static function match($route, $method = 'GET', &$bind = null, &$middleware = null) {
+    public static function match($path, $method = 'GET', &$bind = null, &$middleware = null) {
         $method = strtoupper($method);
-        if (!isset(static::$allRoutes[$method])) {
-            throw new RouteNotMatchException("未匹配到路由");
-        }
-        foreach(static::$allRoutes[$method] as $name => $path) {
-            if (strpos($name, '{')) { // 含有参数项
-                $raw = '/^'.str_replace('/', '\/', $name).'$/i';
-                // 替换正则式
-                $pattern = preg_replace_callback("/{(.*)}/", function ($r) use ($method, $name) {
-                    $routePattern = static::$routePatterns[$method][$name][$r[1]] ?? null;
-                    if ($routePattern) {
-                        return "(?<{$r[1]}>".$routePattern.')';
-                    }
-                    $basePattern = static::$basePattern[$r[1]] ?? null;
-                    if (isset($basePattern)) {
-                        return "(?<{$r[1]}>".$basePattern.')';
-                    }
-                    return "(?<{$r[1]}>[^\/?#]+)";
-                }, $raw);
-                if (preg_match($pattern, $route, $match)) {
+        $patterns = static::urlPatterns();
+        foreach($patterns as $pattern => $routes) {
+            if (preg_match($pattern, $path, $match)) {
+                $route = $routes[$method] ?? "";
+                if ($route) {
                     unset($match[0]);
                     $bind = $match;
-                    $middleware = static::$routeMiddlewares[$method][$name] ?? [];
-                    list($controller, $func) =  explode("@", $path);
+                    $middleware = static::$routeMiddlewares[$method][$route] ?? [];
+                    list($controller, $func) =  explode("@", static::$allRoutes[$method][$route]);
                     $controller = $controller;
                     return [$controller,$func];
+                } else {
+                    throw new RouteNotMatchException("不支持的请求方式:".$route);
                 }
-            } elseif ($name == $route) {
-                $middleware = static::$routeMiddlewares[$method][$name] ?? [];
-                list($controller, $func) =  explode("@", $path);
-                $controller = $controller;
-                return [$controller,$func];
             }
         }
-        throw new RouteNotMatchException("未匹配到路由:".$route);
+        throw new RouteNotMatchException("未匹配到路由:".$path);
     }
 }
