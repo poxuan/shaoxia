@@ -200,7 +200,7 @@ class Application
         
         $routeParams = $routeMiddleware = [];
         $uri = $this->is_cli ? cli_uri() : $_SERVER['REQUEST_URI'];
-        $method =  $this->is_cli ? 'GET' : $_SERVER['REQUEST_METHOD'];
+        $method =  $this->is_cli ? $this->request->get('method', 'GET') : $_SERVER['REQUEST_METHOD'];
         $path = explode('#', explode("?", ltrim($uri,'/'))[0])[0];
         $path = $path ?: '/';
         // 解析出对应类名、方法名、路由参数、中间件

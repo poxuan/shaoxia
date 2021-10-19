@@ -308,7 +308,6 @@ class Route
      * 按规则生成路由
      */
     protected static function makePattern($route, $method) {
-
         $raw = '/^'.str_replace(['/', '-', '.'],['\/','\-','\.'], $route).'$/i';
         // 替换正则式
         $pattern = preg_replace_callback("/{(.*)}/", function ($r) use ($method, $route) {
