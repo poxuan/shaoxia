@@ -12,7 +12,7 @@ class FinalHandle
     {
         $this->clazz = $clazz;
         $this->func = $func;
-        $this->params = $params;
+        $this->params = $params ?? [];
     }
 
     public function handle($request, $next) {

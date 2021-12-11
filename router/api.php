@@ -51,5 +51,7 @@ Route::prefix('algo')->middleware('test3')->group(function($route) {
 
 Route::get("decode/jsc", "Decode@jsc");
 
+Route::get("model/abc", "Model@abc");
+
 // 最后要清空当前组，防止多文件串化
 Route::clearGroup();
