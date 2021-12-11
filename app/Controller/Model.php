@@ -9,6 +9,7 @@ class Model
 {
     public function abc()
     {   
-        return Abc::query()->where('id','>',1)->toSql();
+        $res = Abc::query()->where('id','>',1)->get();
+        return $res;
     }
 }

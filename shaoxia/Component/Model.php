@@ -3,8 +3,10 @@
 namespace Shaoxia\Component;
 
 use Shaoxia\Adapter\Db\Query;
+use Shaoxia\Support\Collection;
+use Shaoxia\Support\Contracts\Arrayable;
 
-class Model {
+class Model implements Arrayable {
     protected $table;
 
     // 主键
@@ -79,7 +81,11 @@ class Model {
 
     public function get() {
         $res = $this->connect->get();
-        return $res;
+        $collection = new Collection();
+        foreach($res as $item) {
+            $collection->pull(new static($item));
+        }
+        return $collection;
     }
 
     public function update($data = []) {
