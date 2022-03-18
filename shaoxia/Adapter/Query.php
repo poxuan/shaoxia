@@ -1,6 +1,6 @@
 <?php
 
-namespace Shaoxia\Adapter\Db;
+namespace Shaoxia\Adapter;
 
 use Shaoxia\Component\Db;
 use Shaoxia\Exceptions\CustomException;
@@ -45,15 +45,16 @@ class Query {
         $this->adapter = $adapter;
     }
 
-    public function table($name, $prefix = "") {
-        $this->_param['table'] = $prefix.$name;
+    public function table($name, $prefix = "", $as = "") {
+        $this->_param['table'] = $prefix.$name. ($as ? ' as '. $as : '');
     }
 
     public function select($fields) {
+        $glue = $this->_param['fields'] ? ',' : "";
         if (is_array($fields)) {
-            $this->_param['fields'] .= implode(",", $fields);
+            $this->_param['fields'] .= $glue . implode(",", $fields);
         } else {
-            $this->_param['fields'] .= $fields;
+            $this->_param['fields'] .= $glue . $fields;
         }
     }
 
@@ -70,21 +71,20 @@ class Query {
                 if (is_callable($p)) {
                     $p($this);
                 } elseif (is_array($p)) {
-                    $is_first = true;
+                    $count = 0;
                     foreach($p as $k => $v) {
                         if (!is_numeric($k)) {
+                            $v = is_array($v) ? $v : [$v];
                             array_unshift($v, $k);
                         }
-                        call_user_func_array([$this, 'where'], $v);
+                        call_user_func_array([$this, 'where'], $v) && $count++;
+                        
                     }
-                    if ($is_first) {
-                        $is_first = false;
-                    } else {
-                        if (count($this->_param['where']) >= 2) {
-                            $cu = array_pop($this->_param['where']);
-                            $pre = array_pop($this->_param['where']);
-                            $this->_param['where'][] = implode(" and ", [$pre, $cu]);
-                        }
+                    while($count > 1) {
+                        $cu = array_pop($this->_param['where']);
+                        $pre = array_pop($this->_param['where']);
+                        $this->_param['where'][] = implode(" and ", [$pre,$cu]);
+                        $count--;
                     }
                 } elseif (is_string($p)) {
                     $this->_param['where'][] = $p;
@@ -92,9 +92,46 @@ class Query {
                 break;
             case 2:    // 第二位表示值
                 $this->_param['where'][] = $params[0]." = ? ";
+                $this->_param['bindings'][] = $params[1];
                 break;
             case 3:    // 第2位表示操作，第三位表示值
-                $this->_param['where'][] = $params[0]." " . $params[1]." ". $params[2];
+                $glue = strtolower(trim($params[1]));
+                switch($glue) {
+                    case '=':
+                    case '!=':
+                    case '<>':
+                    case '>=':
+                    case '>':
+                    case '>=':
+                    case '<':
+                    case '<=':
+                    case 'like':
+                    case 'not like':
+                        $this->_param['where'][] = $params[0]." " . $params[1]." ? ";
+                        $this->_param['bindings'][] = $params[2];
+                        break;
+                    case 'between':
+                    case 'not between':
+                        $this->_param['where'][] = $params[0]." " . $params[1]." ? and ? ";
+                        $this->_param['bindings'][] = $params[2][0];
+                        $this->_param['bindings'][] = $params[2][1] ?? "";
+                        break;
+                    case 'in':
+                    case 'not in':
+                        $ar = [];
+                        foreach($params[2] as $val) {
+                            $ar[] = "?";
+                            $this->_param['bindings'][] = $val;
+                        }
+                        $this->_param['where'][] = $params[0] . " " . $params[1]. " (" . implode(",", $ar) . ")";
+                        break;
+                    case 'is':
+                    case 'is not':
+                        $this->_param['where'][] =  $params[0] . " " . $params[1]. " null";
+                        break;
+                    default:
+                        throw new CustomException("不支持的条件类型");
+                }
                 break;
             default:
                 throw new CustomException("参数数目异常");
@@ -108,7 +145,7 @@ class Query {
         if (count($this->_param['where']) >= 2) {
             $cu = array_pop($this->_param['where']);
             $pre = array_pop($this->_param['where']);
-            $this->_param['where'][] = implode(" or ", [$cu, $pre]);
+            $this->_param['where'][] = implode(" or ", [$pre, $cu]);
         }
     }
 

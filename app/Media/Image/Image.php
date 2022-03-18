@@ -23,8 +23,8 @@ class Image
     private $imageinfo;
     // 比例
     private $percent = 1;
-    // 背景色
-    private $background = '#fff';
+    // 背景色, 暂时没啥用
+    private $bgcolor = [ 0, 0, 0, 127];
 
     // 方位,可叠加使用
     const DIRE_CENTER = 15;
@@ -117,12 +117,12 @@ class Image
      * @param string $path 图片路径
      * @param int    $x    起始位置横坐标
      * @param int    $y    起始位置纵坐标
-     * @param int    $dst_width     目标图片宽度,不设为原图
-     * @param int    $dst_height    目标图片高度,不设是按宽度等比例
+     * @param int    $dst_width     目标图片宽度,0为原图宽
+     * @param int    $dst_height    目标图片高度,0为按宽度等比例
      * @param int    $pct  合并程度
      * @return self
      */
-    public function addPic($path, $x, $y, $dst_width = 0, $dst_height = 0, $pct = 100)
+    public function addPic($path, $x, $y, $dst_width = 0, $dst_height = 0, $pct = 100, $dst_radius = 0)
     {
         list($width, $height, $type, $attr) = getimagesize($path);
         $imageinfo = array(
@@ -136,8 +136,18 @@ class Image
         $content = file_get_contents($path);
         $image2 = imagecreatefromstring($content);
         $image_thump = imagecreatetruecolor($dst_width, $dst_height);
-        //将原图复制带图片载体上面，并且按照一定比例压缩,极大的保持了清晰度
+        //将原图复制带图片载体上面，并且按照一定比例压缩
         imagecopyresampled($image_thump, $image2, 0, 0, 0, 0, $dst_width, $dst_height, $imageinfo['width'], $imageinfo['height']);
+        if ($dst_radius > 0) {
+            $alpha = imagecolorallocatealpha($image_thump , 0 , 0 ,0 , 0);
+            for ($i = 0;$i < $dst_width; $i++) {
+                for ($j = 0;$j < $dst_height; $j++) {
+                    if(!$this->inLayer(0, 0, $dst_width, $dst_height, $dst_radius, $i, $j)) {
+                        imagesetpixel($image_thump, $i, $j, $alpha);
+                    }                
+                }
+            }
+        }
         imagedestroy($image2);
         imagecopymerge($this->image, $image_thump, $x, $y, 0, 0, $dst_width, $dst_height, $pct);
         return $this;
@@ -256,7 +266,7 @@ class Image
      *
      * @param string|int $width
      * @param string|int $height
-     * @param string|int $rgb
+     * @param string|array $rgb
      * @return self
      * @author chentengfei
      * @since
@@ -267,7 +277,7 @@ class Image
         {
             $rgb = $this->hex2rgb($rgb);
         }
-        $this->background = $rgb;
+        $this->bgcolor = $rgb;
         $image = imagecreatetruecolor($width, $height);
         $color = imagecolorallocatealpha($image, $rgb[0], $rgb[1], $rgb[2], $rgb[3] ?? 0);
         imagefill($image, 0, 0, $color);
@@ -831,6 +841,149 @@ class Image
         return $this->image ? true : false;
     }
 
+    const COLOR_NAMES = [
+        'AliceBlue' => '#F0F8FF',	 
+        'AntiqueWhite' => '#FAEBD7',
+        'Aqua' => '#00FFFF',
+        'Aquamarine' => '#7FFFD4',
+        'Azure' => '#F0FFFF',
+        'Beige' => '#F5F5DC',
+        'Bisque' => '#FFE4C4',
+        'Black' => '#000000',
+        'BlanchedAlmond' => '#FFEBCD',
+        'Blue' => '#0000FF',
+        'BlueViolet' => '#8A2BE2',
+        'Brown' => '#A52A2A',
+        'BurlyWood' => '#DEB887',
+        'CadetBlue' => '#5F9EA0',
+        'Chartreuse' => '#7FFF00',
+        'Chocolate' => '#D2691E',
+        'Coral' => '#FF7F50',
+        'CornflowerBlue' => '#6495ED',
+        'Cornsilk' => '#FFF8DC',
+        'Crimson' => '#DC143C',
+        'Cyan' => '#00FFFF',
+        'DarkBlue' => '#00008B',
+        'DarkCyan' => '#008B8B',
+        'DarkGoldenRod' => '#B8860B',
+        'DarkGray' => '#A9A9A9',
+        'DarkGreen' => '#006400',
+        'DarkKhaki' => '#BDB76B',
+        'DarkMagenta' => '#8B008B',
+        'DarkOliveGreen' => '#556B2F',
+        'DarkOrange' => '#FF8C00',
+        'DarkOrchid' => '#9932CC',
+        'DarkRed' => '#8B0000',
+        'DarkSalmon' => '#E9967A',
+        'DarkSeaGreen' => '#8FBC8F',
+        'DarkSlateBlue' => '#483D8B',
+        'DarkSlateGray' => '#2F4F4F',
+        'DarkTurquoise' => '#00CED1',
+        'DarkViolet' => '#9400D3',
+        'DeepPink' => '#FF1493',
+        'DeepSkyBlue' => '#00BFFF',
+        'DimGray' => '#696969',
+        'DodgerBlue' => '#1E90FF',
+        'FireBrick' => '#B22222',
+        'FloralWhite' => '#FFFAF0',
+        'ForestGreen' => '#228B22',
+        'Fuchsia' => '#FF00FF',
+        'Gainsboro' => '#DCDCDC',
+        'GhostWhite' => '#F8F8FF',
+        'Gold' => '#FFD700',
+        'GoldenRod' => '#DAA520',
+        'Gray' => '#808080',
+        'Green' => '#008000',
+        'GreenYellow' => '#ADFF2F',
+        'HoneyDew' => '#F0FFF0',
+        'HotPink' => '#FF69B4',
+        'IndianRed' => 	'#CD5C5C',
+        'Indigo' =>	'#4B0082',	 
+        'Ivory' => '#FFFFF0',
+        'Khaki' => '#F0E68C',
+        'Lavender' => '#E6E6FA',
+        'LavenderBlush' => '#FFF0F5',
+        'LawnGreen' => '#7CFC00',
+        'LemonChiffon' => '#FFFACD',
+        'LightBlue' => '#ADD8E6',
+        'LightCoral' => '#F08080',
+        'LightCyan' => '#E0FFFF',
+        'LightGoldenRodYellow' => '#FAFAD2',
+        'LightGray' => '#D3D3D3',
+        'LightGreen' => '#90EE90',
+        'LightPink' => '#FFB6C1',
+        'LightSalmon' => '#FFA07A',
+        'LightSeaGreen' => '#20B2AA',
+        'LightSkyBlue' => '#87CEFA',
+        'LightSlateGray' => '#778899',
+        'LightSteelBlue' => '#B0C4DE',
+        'LightYellow' => '#FFFFE0',
+        'Lime' => '#00FF00',
+        'LimeGreen' => '#32CD32',
+        'Linen' => '#FAF0E6',
+        'Magenta' => '#FF00FF',
+        'Maroon' => '#800000',
+        'MediumAquaMarine' => '#66CDAA',
+        'MediumBlue' => '#0000CD',
+        'MediumOrchid' => '#BA55D3',
+        'MediumPurple' => '#9370DB',
+        'MediumSeaGreen' => '#3CB371',
+        'MediumSlateBlue' => '#7B68EE',
+        'MediumSpringGreen' => '#00FA9A',
+        'MediumTurquoise' => '#48D1CC',
+        'MediumVioletRed' => '#C71585',
+        'MidnightBlue' => '#191970',
+        'MintCream' => '#F5FFFA',
+        'MistyRose' => '#FFE4E1',
+        'Moccasin' => '#FFE4B5',
+        'NavajoWhite' => '#FFDEAD',
+        'Navy' => '#000080',
+        'OldLace' => '#FDF5E6',
+        'Olive' => '#808000',
+        'OliveDrab' => '#6B8E23',
+        'Orange' => '#FFA500',
+        'OrangeRed' => '#FF4500',
+        'Orchid' => '#DA70D6',
+        'PaleGoldenRod' => '#EEE8AA',
+        'PaleGreen' => '#98FB98',
+        'PaleTurquoise' => '#AFEEEE',
+        'PaleVioletRed' => '#DB7093',
+        'PapayaWhip' => '#FFEFD5',
+        'PeachPuff' => '#FFDAB9',
+        'Peru' => '#CD853F',
+        'Pink' => '#FFC0CB',
+        'Plum' => '#DDA0DD',
+        'PowderBlue' => '#B0E0E6',
+        'Purple' => '#800080',
+        'Red' => '#FF0000',
+        'RosyBrown' => '#BC8F8F',
+        'RoyalBlue' => '#4169E1',
+        'SaddleBrown' => '#8B4513',
+        'Salmon' => '#FA8072',
+        'SandyBrown' => '#F4A460',
+        'SeaGreen' => '#2E8B57',
+        'SeaShell' => '#FFF5EE',
+        'Sienna' => '#A0522D',
+        'Silver' => '#C0C0C0',
+        'SkyBlue' => '#87CEEB',
+        'SlateBlue' => '#6A5ACD',
+        'SlateGray' => '#708090',
+        'Snow' => '#FFFAFA',
+        'SpringGreen' => '#00FF7F',
+        'SteelBlue' => '#4682B4',
+        'Tan' => '#D2B48C',
+        'Teal' => '#008080',
+        'Thistle' => '#D8BFD8',
+        'Tomato' => '#FF6347',
+        'Turquoise' => '#40E0D0',
+        'Violet' => '#EE82EE',
+        'Wheat' => '#F5DEB3',
+        'White' => '#FFFFFF',
+        'WhiteSmoke' => '#F5F5F5',
+        'Yellow' => '#FFFF00',
+        'YellowGreen' => '#9ACD32',
+    ];
+
     /**
      * 颜色名称转换为16进制
      *
@@ -840,149 +993,8 @@ class Image
      * @since
      */
     public function color2hex($color) {
-        $colornames = [
-            'AliceBlue' => '#F0F8FF',	 
-            'AntiqueWhite' => '#FAEBD7',
-            'Aqua' => '#00FFFF',
-            'Aquamarine' => '#7FFFD4',
-            'Azure' => '#F0FFFF',
-            'Beige' => '#F5F5DC',
-            'Bisque' => '#FFE4C4',
-            'Black' => '#000000',
-            'BlanchedAlmond' => '#FFEBCD',
-            'Blue' => '#0000FF',
-            'BlueViolet' => '#8A2BE2',
-            'Brown' => '#A52A2A',
-            'BurlyWood' => '#DEB887',
-            'CadetBlue' => '#5F9EA0',
-            'Chartreuse' => '#7FFF00',
-            'Chocolate' => '#D2691E',
-            'Coral' => '#FF7F50',
-            'CornflowerBlue' => '#6495ED',
-            'Cornsilk' => '#FFF8DC',
-            'Crimson' => '#DC143C',
-            'Cyan' => '#00FFFF',
-            'DarkBlue' => '#00008B',
-            'DarkCyan' => '#008B8B',
-            'DarkGoldenRod' => '#B8860B',
-            'DarkGray' => '#A9A9A9',
-            'DarkGreen' => '#006400',
-            'DarkKhaki' => '#BDB76B',
-            'DarkMagenta' => '#8B008B',
-            'DarkOliveGreen' => '#556B2F',
-            'DarkOrange' => '#FF8C00',
-            'DarkOrchid' => '#9932CC',
-            'DarkRed' => '#8B0000',
-            'DarkSalmon' => '#E9967A',
-            'DarkSeaGreen' => '#8FBC8F',
-            'DarkSlateBlue' => '#483D8B',
-            'DarkSlateGray' => '#2F4F4F',
-            'DarkTurquoise' => '#00CED1',
-            'DarkViolet' => '#9400D3',
-            'DeepPink' => '#FF1493',
-            'DeepSkyBlue' => '#00BFFF',
-            'DimGray' => '#696969',
-            'DodgerBlue' => '#1E90FF',
-            'FireBrick' => '#B22222',
-            'FloralWhite' => '#FFFAF0',
-            'ForestGreen' => '#228B22',
-            'Fuchsia' => '#FF00FF',
-            'Gainsboro' => '#DCDCDC',
-            'GhostWhite' => '#F8F8FF',
-            'Gold' => '#FFD700',
-            'GoldenRod' => '#DAA520',
-            'Gray' => '#808080',
-            'Green' => '#008000',
-            'GreenYellow' => '#ADFF2F',
-            'HoneyDew' => '#F0FFF0',
-            'HotPink' => '#FF69B4',
-            'IndianRed' => 	'#CD5C5C',
-            'Indigo' =>	'#4B0082',	 
-            'Ivory' => '#FFFFF0',
-            'Khaki' => '#F0E68C',
-            'Lavender' => '#E6E6FA',
-            'LavenderBlush' => '#FFF0F5',
-            'LawnGreen' => '#7CFC00',
-            'LemonChiffon' => '#FFFACD',
-            'LightBlue' => '#ADD8E6',
-            'LightCoral' => '#F08080',
-            'LightCyan' => '#E0FFFF',
-            'LightGoldenRodYellow' => '#FAFAD2',
-            'LightGray' => '#D3D3D3',
-            'LightGreen' => '#90EE90',
-            'LightPink' => '#FFB6C1',
-            'LightSalmon' => '#FFA07A',
-            'LightSeaGreen' => '#20B2AA',
-            'LightSkyBlue' => '#87CEFA',
-            'LightSlateGray' => '#778899',
-            'LightSteelBlue' => '#B0C4DE',
-            'LightYellow' => '#FFFFE0',
-            'Lime' => '#00FF00',
-            'LimeGreen' => '#32CD32',
-            'Linen' => '#FAF0E6',
-            'Magenta' => '#FF00FF',
-            'Maroon' => '#800000',
-            'MediumAquaMarine' => '#66CDAA',
-            'MediumBlue' => '#0000CD',
-            'MediumOrchid' => '#BA55D3',
-            'MediumPurple' => '#9370DB',
-            'MediumSeaGreen' => '#3CB371',
-            'MediumSlateBlue' => '#7B68EE',
-            'MediumSpringGreen' => '#00FA9A',
-            'MediumTurquoise' => '#48D1CC',
-            'MediumVioletRed' => '#C71585',
-            'MidnightBlue' => '#191970',
-            'MintCream' => '#F5FFFA',
-            'MistyRose' => '#FFE4E1',
-            'Moccasin' => '#FFE4B5',
-            'NavajoWhite' => '#FFDEAD',
-            'Navy' => '#000080',
-            'OldLace' => '#FDF5E6',
-            'Olive' => '#808000',
-            'OliveDrab' => '#6B8E23',
-            'Orange' => '#FFA500',
-            'OrangeRed' => '#FF4500',
-            'Orchid' => '#DA70D6',
-            'PaleGoldenRod' => '#EEE8AA',
-            'PaleGreen' => '#98FB98',
-            'PaleTurquoise' => '#AFEEEE',
-            'PaleVioletRed' => '#DB7093',
-            'PapayaWhip' => '#FFEFD5',
-            'PeachPuff' => '#FFDAB9',
-            'Peru' => '#CD853F',
-            'Pink' => '#FFC0CB',
-            'Plum' => '#DDA0DD',
-            'PowderBlue' => '#B0E0E6',
-            'Purple' => '#800080',
-            'Red' => '#FF0000',
-            'RosyBrown' => '#BC8F8F',
-            'RoyalBlue' => '#4169E1',
-            'SaddleBrown' => '#8B4513',
-            'Salmon' => '#FA8072',
-            'SandyBrown' => '#F4A460',
-            'SeaGreen' => '#2E8B57',
-            'SeaShell' => '#FFF5EE',
-            'Sienna' => '#A0522D',
-            'Silver' => '#C0C0C0',
-            'SkyBlue' => '#87CEEB',
-            'SlateBlue' => '#6A5ACD',
-            'SlateGray' => '#708090',
-            'Snow' => '#FFFAFA',
-            'SpringGreen' => '#00FF7F',
-            'SteelBlue' => '#4682B4',
-            'Tan' => '#D2B48C',
-            'Teal' => '#008080',
-            'Thistle' => '#D8BFD8',
-            'Tomato' => '#FF6347',
-            'Turquoise' => '#40E0D0',
-            'Violet' => '#EE82EE',
-            'Wheat' => '#F5DEB3',
-            'White' => '#FFFFFF',
-            'WhiteSmoke' => '#F5F5F5',
-            'Yellow' => '#FFFF00',
-            'YellowGreen' => '#9ACD32',
-        ];
-        foreach($colornames as $name => $hex) {
+        
+        foreach(static::COLOR_NAMES as $name => $hex) {
             if (strtolower($name) == strtolower($color)) {
                 return $hex;
             }

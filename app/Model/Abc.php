@@ -6,7 +6,11 @@ use Shaoxia\Component\Model;
 
 class Abc extends Model
 {
-    protected $table = 'abc';
+    // 表名
+    // protected $table = 'abc';
+
+    // 设置表的别名
+    protected $alias = "";
 
     protected $hidden = ['status'];
 }

@@ -3,20 +3,22 @@
 namespace Shaoxia\Adapter\Db;
 
 use PDO;
+use Shaoxia\Adapter\Query;
 use Shaoxia\Exceptions\CustomException;
-
 class PdoMysql extends MyPdo{
+
     public function init($config) {
         $pdo = new PDO("mysql:dbname={$config['db']};host={$config['host']};port={$config['port']}", $config['user'], $config['pass']);
+        $pdo->query("set names ". $config['charset']);
         return $pdo;
     }
 
     public static function parseSql($query) {
         switch ($query->type) {
-            case Query::TYPE_SELECT: // 
+            case Query::TYPE_SELECT: // 查询构造
                 $where = $query->where;
                 return "SELECT " . $query->fields . " FROM " . $query->table . $query->join 
-                . ($where ? " where ". implode('and', $where) : '')
+                . ($where ? " where ". implode(' and ', $where) : '')
                 . $query->group. $query->having . $query->order . $query->offset. $query->limit;
             case Query::TYPE_INSERT: // 暂时只支持插入一个数据
                 $column = $value = "";
@@ -27,7 +29,7 @@ class PdoMysql extends MyPdo{
                 $column = substr($column, 1);
                 $value  = substr($value, 1);
                 return "INSERT into {$query->table} ($column) values ($value)";
-            case Query::TYPE_UPDATE:
+            case Query::TYPE_UPDATE: // 更新
                 $where = $query->where;
                 $sets = [];
                 foreach($query->columns as $c => $v) {
@@ -35,8 +37,7 @@ class PdoMysql extends MyPdo{
                 }
                 $sets = implode(" and ",$sets);
                 return "UPDATE {$query->table} {$query->join} set {$sets} " . ($where ? " where ". implode('and', $where) : '') . $query->limit;
-
-            case Query::TYPE_DELETE:
+            case Query::TYPE_DELETE: // 删除
                 $where = $query->where;
                 return "DELETE FROM {$query->table} {$query->join} " . ($where ? " where ". implode('and', $where) : '') . $query->limit;
         }

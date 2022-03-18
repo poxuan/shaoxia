@@ -7,10 +7,13 @@ use Shaoxia\Support\Collection;
 use Shaoxia\Support\Contracts\Arrayable;
 
 class Model implements Arrayable {
+    
     protected $table;
 
     // 主键
     protected $primaryKey = 'id';
+
+    protected $alias = 't';
 
     // 数据库连接名
     protected $connection;
@@ -37,12 +40,12 @@ class Model implements Arrayable {
 
     public function connection() {
         $this->connect = Db::connect($this->connection);
-        $this->connect->setTable($this->getTable());
+        $this->connect->setTable($this->getTable(), $this->alias);
     }
 
 
     protected function getTable() {
-        return $this->table ?: basename(get_class($this));
+        return $this->table ?: toUnderScore(basename(get_class($this)));
     }
 
     public static function __callStatic($name, $arguments)
