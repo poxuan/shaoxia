@@ -2,6 +2,8 @@
 
 namespace Shaoxia\Boot;
 
+use \Shaoxia\Contracts\Request;
+
 class CliRequest implements Request
 {
     protected $params = [];

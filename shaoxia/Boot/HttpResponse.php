@@ -2,6 +2,8 @@
 
 namespace Shaoxia\Boot;
 
+use \Shaoxia\Contracts\Response;
+
 class HttpResponse implements Response
 {
     protected $resource = null;
@@ -32,22 +34,21 @@ class HttpResponse implements Response
             switch (strtolower($type)) {
                 case 'xml':
                 case 'application/xml':
-                    header('Content-Type: application/xml');
+                    $this->withHeader('Content-Type: application/xml');
                     echo xml_encode($resource);
                     break;
                 case 'json':
                 case 'application/json':
-                    header('Content-Type: application/json');
+                    $this->withHeader('Content-Type: application/json');
                     echo json_encode($resource);
                     break;
-                case 'jsonp': // 手动设置吧，总不能用callback字段判断吧
-                    header('Content-Type: text/html');
+                case 'jsonp': // 手动设置吧
                     $func = $_GET['callback'];
                     echo jsonp_encode($resource, $func);
                     break;
                 default:
-                    if(is_array($resource)) {
-                        echo json_encode($resource);
+                    if(is_array($resource) || is_object($resource)) {
+                        dump($resource);
                     } else {
                         echo $resource ?: "";
                     }
@@ -88,20 +89,28 @@ class HttpResponse implements Response
     /**
      * 输出类型
      */
-    protected function outType() {
-        $type = $this->outType;
-        if (!$type) {
-            $accept = request()->header('accept');
-            if ($accept && $accept != '*') {
-                $as = explode(",", $accept);
-                foreach ($as as $a) {
-                    if ($a && strpos($a, '*') === false) {
-                        $type = $a;
-                        break;
+    protected function outType($type = null) {
+        if ($type) {
+            $this->outType = $type;
+            return $type;
+        } else {
+            $type = $this->outType;
+            if (!$type) {
+                $accept = request()->header('accept');
+                
+                if ($accept && $accept != '*') {
+                    $as = explode(",", $accept);
+                    foreach ($as as $a) {
+                        $a = trim($a);
+                        if ($a && strpos($a, '*') === false) {
+                            $type = $a;
+                            break;
+                        }
                     }
                 }
+                $this->outType = $type;
             }
-        } 
-        return $type;
+            return $type;
+        }
     }
 }

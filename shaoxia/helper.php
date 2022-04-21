@@ -9,14 +9,21 @@
  * 
  * @return mixed
  */
-function config($name = '', $default = null, $file = 'config')
+function config($name = '', $default = null)
 {
-    $configs = require CONFIG_PATH.$file.'.php';
-    $value = null;
-    if ($name == '') {
-        return $configs;
+    if (empty($name)) {
+        return null;
     }
     $names = explode('.', $name);
+    $file = array_shift($names);
+    $configs = require CONFIG_PATH.$file.'.php';
+    if (empty($configs)) {
+        return $default;
+    }
+    $value = null;
+    if (count($names) == 0) {
+        return $configs;
+    }
     for ($i = 0; $i < count($names); $i++) {
         $value = $configs[$names[$i]] ?? null;
     }

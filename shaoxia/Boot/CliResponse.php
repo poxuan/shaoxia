@@ -2,6 +2,7 @@
 
 namespace Shaoxia\Boot;
 
+use \Shaoxia\Contracts\Response;
 class CliResponse implements Response
 {
     protected $resource = null;

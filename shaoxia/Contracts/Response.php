@@ -1,6 +1,6 @@
 <?php
 
-namespace Shaoxia\Boot;
+namespace Shaoxia\Contracts;
 
 interface Response
 {

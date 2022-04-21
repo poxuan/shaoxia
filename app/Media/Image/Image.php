@@ -2,9 +2,9 @@
 
 namespace App\Media\Image;
 
-use App\Media\Traits\ImageFont;
-use App\Media\Traits\ImageSave;
-use App\Media\Traits\ImageSpecial;
+use \App\Media\Traits\ImageFont;
+use \App\Media\Traits\ImageSave;
+use \App\Media\Traits\ImageSpecial;
 
 /**
  * Class File
@@ -1023,21 +1023,21 @@ class Image
                     hexdec(substr($color, 4, 2)),
                     hexdec(substr($color, 6, 2)),
                 );
-                continue;
+                break;
             case 6:
                 $rgb = array(
                     hexdec(substr($color, 0, 2)),
                     hexdec(substr($color, 2, 2)),
                     hexdec(substr($color, 4, 2)),
                 );
-                continue;
+                break;
             case 3:
                 $rgb = array(
                     hexdec(substr($color, 0, 1).substr($color, 0, 1)),
                     hexdec(substr($color, 1, 1).substr($color, 1, 1)),
                     hexdec(substr($color, 2, 1).substr($color, 2, 1)),
                 );
-                continue;
+                break;
             default:
                 throw new \Exception('color '.$hexColor.' not sopport.');
         }

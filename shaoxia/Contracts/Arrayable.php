@@ -1,6 +1,6 @@
 <?php
 
-namespace Shaoxia\Support\Contracts;
+namespace Shaoxia\Contracts;
 
 /**
  * Class File

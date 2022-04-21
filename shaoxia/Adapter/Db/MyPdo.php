@@ -39,8 +39,13 @@ abstract class MyPdo implements DbAdapter{
 
     // 开始事务
     public function beginTransaction() {
-        $this->_inTrans = true;
-        return $this->_connect->beginTransaction();
+        if (!$this->_inTrans) {
+            $res = $this->_connect->beginTransaction();
+            $res && $this->_inTrans = true;
+            return $res;
+        } else {
+            return false;
+        }
     }
 
     // 回滚事务
@@ -84,6 +89,7 @@ abstract class MyPdo implements DbAdapter{
                 $bindings = $sql->getBindings();
                 $sql = $this->parseSql($sql);
             }
+            var_dump($sql);
             $resource = $this->_connect->prepare($sql);
             $resource->execute($bindings);
             return $resource;
@@ -112,6 +118,13 @@ abstract class MyPdo implements DbAdapter{
      */
     public function fetchObject($resource) {
         return $resource->fetchObject();
+    }
+
+    /**
+     * @param \PDOStatement $resource 
+     */
+    public function rowCount($resource) {
+        return $resource->rowCount();
     }
 
     abstract static function parseSql($query);

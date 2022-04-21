@@ -11,6 +11,9 @@ class Db {
     const DB_READ = 1;
     const DB_WRITE = 2;
 
+    // 驱动名称
+    private $_dirver = '';
+
     /**
      * 连接适配器
      * @var \Shaoxia\Adapter\DbAdapter
@@ -27,16 +30,13 @@ class Db {
     private $_config = [];
 
     // 读写各自适配连接
-    private $_connect_pool = []; 
+    private static $_connect_pool = []; 
 
     // 是否支持事务
     private $_IST = false;
 
-    // 局部事务是否开启
-    private $_transaction = false;
-
     // 当前事务连接
-    private $_transaction_adapter = null;
+    private  $_transaction_adapter = null;
 
     // 当前是否在全局事务中
     protected static $globalTransaction = false;
@@ -46,17 +46,18 @@ class Db {
     
     public function __construct($name = 'default')
     {
-        $config = config($name ?: 'default', null, 'database');
+        $config = config($name ?: 'database.default', null);
         $this->_config = $config;
-        $this->setAdapter($config['driver'] ?? "");
+        $this->_dirver = $config['driver'] ?? "";
+        $this->setAdapter();
         $this->_query = new Query($this->_adapter);
     }
 
     /**
      * 设置驱动器
      */
-    public function setAdapter($driver) {
-        $adapter = "Shaoxia\Adapter\Db\\{$driver}";
+    public function setAdapter() {
+        $adapter = "Shaoxia\Adapter\Db\\{$this->_dirver}";
         if (!class_exists($adapter)) {
             throw new CustomException("数据库驱动不存在");
         }
@@ -85,8 +86,10 @@ class Db {
         try {
             $callable();
             static::commit();
+            return true;
         } catch(\Throwable $t) {
             static::rollback();
+            return false;
         }
     }
 
@@ -160,7 +163,8 @@ class Db {
                 $beginTransaction = true;
             }
         }
-        if (!isset($this->_connect_pool[$type])) {
+        
+        if (!isset(static::$_connect_pool[$this->_dirver][$type])) {
             $config = $this->_config;
             $host = $this->_config['host'];
             if (is_string($host)) {
@@ -173,13 +177,12 @@ class Db {
             }
             $adapter = new $this->_adapter;
             $adapter->connect($config);
-            $this->_connect_pool[$type] = $adapter;
+            static::$_connect_pool[$this->_dirver][$type] = $adapter;
         } else {
-            $adapter = $this->_connect_pool[$type];
+            $adapter = static::$_connect_pool[$this->_dirver][$type];
         }
         // 开启事务, 并加入全局事务
-        if ($beginTransaction) {
-            $adapter->beginTransaction();
+        if ($beginTransaction && $adapter->beginTransaction()) {
             $this->_transaction_adapter = $adapter; 
             static::$globalTransaction && static::$globalTransactionDBs[] = $this;
         }
@@ -211,6 +214,15 @@ class Db {
         return $this;
     }
 
+    public function first() {
+        
+        $connection = $this->selectConnect();
+        $this->_query->setType(Query::TYPE_SELECT);
+        $this->_query->limit(1);
+        $resource = $connection->query($this->_query);
+        return $connection->fetch($resource);
+    }
+    
     public function get() {
         $connection = $this->selectConnect();
         $this->_query->setType(Query::TYPE_SELECT);
@@ -229,7 +241,7 @@ class Db {
         $this->_query->columns($data);
         
         $resource = $connection->query($this->_query);
-        return $connection->fetchAll($resource);
+        return $connection->rowCount($resource);
     }
 
     public function insert($data) {
@@ -238,5 +250,12 @@ class Db {
         $this->_query->columns($data);
         $connection->query($this->_query);
         return $connection->lastInsertId();
+    }
+
+    public function delete() {
+        $connection = $this->selectConnect(static::DB_WRITE);
+        $this->_query->setType(Query::TYPE_DELETE);
+        $resource = $connection->query($this->_query);
+        return $connection->rowCount($resource);
     }
 }

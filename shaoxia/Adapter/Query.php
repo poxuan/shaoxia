@@ -33,6 +33,7 @@ class Query {
         "order"  => null, // 排序条件
         "limit"  => null, // 数量
         "offset" => null,// 偏移
+        "lock"   => false, // 锁定
         "columns"  => [],// 插入或更新的字段
         "bindings" => [],// 绑定参数
     ];
@@ -60,6 +61,14 @@ class Query {
 
     public function join($table, $condition, $type = self::JOIN_LEFT) {
         $this->_param['join'] .= " $type join $table on $condition";
+    }
+
+    public function when($condition, $call1, $call2) {
+        if ($condition) {
+            $call1 && $call1($this);
+        } else {
+            $call2 && $call2($this);
+        }
     }
 
     // where 条件
@@ -137,6 +146,11 @@ class Query {
                 throw new CustomException("参数数目异常");
         }
         return true;
+    }
+
+    // 查询加锁
+    public function lock() {
+        $this->_param['lock'] = true;
     }
 
     // orwhere 条件

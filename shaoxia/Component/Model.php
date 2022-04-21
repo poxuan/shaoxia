@@ -2,9 +2,9 @@
 
 namespace Shaoxia\Component;
 
-use Shaoxia\Adapter\Db\Query;
-use Shaoxia\Support\Collection;
-use Shaoxia\Support\Contracts\Arrayable;
+use \Shaoxia\Adapter\Db\Query;
+use \Shaoxia\Support\Collection;
+use \Shaoxia\Contracts\Arrayable;
 
 class Model implements Arrayable {
     
@@ -33,7 +33,7 @@ class Model implements Arrayable {
     // 可显示字段，优先级高于 $hidden
     protected $visiable;
 
-    public function __construct($data = null)
+    public function __construct($data = [])
     {
         $this->rawData = $data;
     }
@@ -72,11 +72,10 @@ class Model implements Arrayable {
         return $this->connect->toSql();
     }
 
-    public function first() {
-        $this->connect->limit(1);
-        $res = $this->connect->get();
+    public function first($query = []) {
+        $res = $this->connect->where($query)->first();
         if ($res) {
-            $this->rawData = $res[0];
+            $this->rawData = $res;
             return $this;
         }
         return null;
@@ -96,7 +95,27 @@ class Model implements Arrayable {
         return $res;
     }
 
-    public function insert($data) {
+    public function delete() {
+        $res = $this->connect->delete();
+        return $res;
+    }
+
+    public function destory() {
+        $res = $this->connect->where($this->primaryKey, $this->rawData[$this->primaryKey])->delete();
+        return $res;
+    }
+
+    public function create($data = []) {
+        $data = array_merge($this->rawData ?: [], $data);
+        $lastInsertID = $this->connect->insert($data);
+        if ($lastInsertID) {
+            $data[$this->primaryKey] = $lastInsertID;
+            $this->rawData = $data;
+        }
+        return $this;
+    }
+
+    public function firstOrCreate($data = []) {
 
     }
 

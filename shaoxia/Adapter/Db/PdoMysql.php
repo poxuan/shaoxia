@@ -19,7 +19,8 @@ class PdoMysql extends MyPdo{
                 $where = $query->where;
                 return "SELECT " . $query->fields . " FROM " . $query->table . $query->join 
                 . ($where ? " where ". implode(' and ', $where) : '')
-                . $query->group. $query->having . $query->order . $query->offset. $query->limit;
+                . $query->group. $query->having . $query->order 
+                . $query->offset. $query->limit . ($query->lock ? ' for update' : '');
             case Query::TYPE_INSERT: // 暂时只支持插入一个数据
                 $column = $value = "";
                 foreach($query->columns as $c => $v) {
@@ -35,7 +36,7 @@ class PdoMysql extends MyPdo{
                 foreach($query->columns as $c => $v) {
                     $sets[] = self::quoteColumn($c) ." = " .self::quoteValue($v);
                 }
-                $sets = implode(" and ",$sets);
+                $sets = implode(", ",$sets);
                 return "UPDATE {$query->table} {$query->join} set {$sets} " . ($where ? " where ". implode('and', $where) : '') . $query->limit;
             case Query::TYPE_DELETE: // 删除
                 $where = $query->where;

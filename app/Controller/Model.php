@@ -26,7 +26,7 @@ class Model
         $res12 = Abc::query()->where('id','between',[2, 3])->orWhere('name', 'like', '张%')->first();
         $res13 = Abc::query()->where([['id','between',[2, 3]],['name', 'like', '张%']])->toSql();
         $res14 = Abc::query()->where(['id'=> ['in',[2, 3]],'name'=> ['like', '张%']])->toSql();
-        $res15 = Abc::query()->where(['id'=> 3,'name'=> ['like', '张%']])->toSql();
-        return $res15;
+        $res15 = Abc::query()->where(['id'=> 3,'name'=> ['like', '张%']])->get();
+        return $res12;
     }
 }

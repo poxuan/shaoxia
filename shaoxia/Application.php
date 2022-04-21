@@ -2,11 +2,11 @@
 
 namespace Shaoxia;
 
-use Shaoxia\Boot\ExceptionHandler;
 use Shaoxia\Boot\FinalHandle;
-use Shaoxia\Boot\Request;
-use Shaoxia\Boot\Response;
 use Shaoxia\Boot\Route;
+use Shaoxia\Contracts\ExceptionHandler;
+use Shaoxia\Contracts\Request;
+use Shaoxia\Contracts\Response;
 use Shaoxia\Exceptions\CustomException;
 use Shaoxia\Exceptions\MethodNotFoundException;
 use Shaoxia\Exceptions\RouteNotMatchException;
@@ -84,7 +84,7 @@ class Application
     {
         try {
             
-            $this->iniConfig = config('', [], 'app');
+            $this->iniConfig = config('app', []);
             $this->ini_alias();
             $this->ini_bind();
             $this->ini_route();

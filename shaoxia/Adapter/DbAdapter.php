@@ -40,6 +40,9 @@ interface DbAdapter {
     // 获取全部记录
     public function fetchAll($resource);
 
+    // 获取影响行数
+    public function rowCount($resource);
+
     // 获取上一次插入的ID
     public function lastInsertID();
 }

@@ -82,7 +82,7 @@ trait ImageSave
      */
     protected function uploadQiniu($dstImgName, $localName)
     {
-        $setting = config('qiniu');
+        $setting = config('files.qiniu');
         $auth = new \Qiniu\Auth($setting['accessKey'], $setting['secretKey']);
         $token = $auth->uploadToken($setting['bucket']);
         $UploadManager = new \Qiniu\Storage\UploadManager();

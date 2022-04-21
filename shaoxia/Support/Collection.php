@@ -5,7 +5,7 @@ namespace Shaoxia\Support;
 use ArrayAccess;
 use Countable;
 use JsonSerializable;
-use Shaoxia\Support\Contracts\Arrayable;
+use Shaoxia\Contracts\Arrayable;
 
 /**
  * Class File
