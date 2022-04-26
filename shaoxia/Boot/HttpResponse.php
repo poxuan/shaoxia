@@ -48,7 +48,8 @@ class HttpResponse implements Response
                     break;
                 default:
                     if(is_array($resource) || is_object($resource)) {
-                        dump($resource);
+                        $this->withHeader('Content-Type: application/json');
+                        echo json_encode($resource);
                     } else {
                         echo $resource ?: "";
                     }

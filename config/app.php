@@ -3,7 +3,7 @@
 return [
     // 绑定
     "bindings" => [
-        Shaoxia\Boot\ExceptionHandler::class => Shaoxia\Exceptions\ErrorHandler::class, // 异常处理绑定
+        Shaoxia\Contracts\ExceptionHandler::class => App\Handler\ErrorHandler::class, // 异常处理绑定
     ],
     // 别名
     'alias' => [

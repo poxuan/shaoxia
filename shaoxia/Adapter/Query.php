@@ -25,7 +25,7 @@ class Query {
     private $_param = [
         "type"   => self::TYPE_SELECT,  // 请求类型 select, update, delete, insert
         "table"  => null, // 表名
-        "fields" => "*", // 查询字段
+        "fields" => "", // 查询字段
         "joins"  => null,   // 链接表
         "where"  => [],   // 查询条件
         "group"  => null, // 分组条件
@@ -63,12 +63,13 @@ class Query {
         $this->_param['join'] .= " $type join $table on $condition";
     }
 
-    public function when($condition, $call1, $call2) {
+    public function when($condition, $call1 = null, $call2 = null) {
         if ($condition) {
             $call1 && $call1($this);
         } else {
             $call2 && $call2($this);
         }
+        return $this;
     }
 
     // where 条件

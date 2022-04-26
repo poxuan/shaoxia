@@ -14,14 +14,39 @@ abstract class MyPdo implements DbAdapter{
     /**
      * @var \Pdo
      */
-    private $_connect;
+    protected $_connect;
 
-    private $_inTrans = false;
+    protected $_inTrans = false;
+
+    protected $lastPing = 0;
+
+    protected $_config;
 
     abstract function init($config);
 
     public static function isAvailable() {
         return class_exists('PDO');
+    }
+
+
+    function ping() {
+        // 不在事务中，且上次ping不超过两秒, 用于长期连接处理
+        if (!$this->_inTrans && $this->lastPing + 2 < time()) {
+            try {
+                $ret = $this->_connect->getAttribute(\PDO::ATTR_SERVER_INFO);
+                if ($ret === null) {
+                    $this->connect();
+                    return false;
+                }
+            } catch (\PDOException $e) {
+                if(strpos($e->getMessage(), 'MySQL server has gone away')!==false){
+                    $this->connect();
+                    return false;
+                }
+            }
+            $this->lastPing = time();
+        }
+        return true;
     }
 
     public function __destruct()
@@ -40,6 +65,7 @@ abstract class MyPdo implements DbAdapter{
     // 开始事务
     public function beginTransaction() {
         if (!$this->_inTrans) {
+            $this->ping();  // 事务开启前做 ping 操作
             $res = $this->_connect->beginTransaction();
             $res && $this->_inTrans = true;
             return $res;
@@ -48,6 +74,7 @@ abstract class MyPdo implements DbAdapter{
         }
     }
 
+    
     // 回滚事务
     public function rollback() {
         $this->_inTrans = false;
@@ -60,9 +87,14 @@ abstract class MyPdo implements DbAdapter{
         return $this->_connect->commit();
     }
     
-    public function connect($config)
+    public function connect($config = [])
     {
         try {
+            if ($config) {
+                $this->_config = $config;
+            } else {
+                $config = $this->_config;
+            }
             $this->_connect = $this->init($config);
             $this->_connect->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             return $this;
@@ -89,7 +121,7 @@ abstract class MyPdo implements DbAdapter{
                 $bindings = $sql->getBindings();
                 $sql = $this->parseSql($sql);
             }
-            var_dump($sql);
+            $this->ping();
             $resource = $this->_connect->prepare($sql);
             $resource->execute($bindings);
             return $resource;
@@ -116,8 +148,8 @@ abstract class MyPdo implements DbAdapter{
     /**
      * @param \PDOStatement $resource 
      */
-    public function fetchObject($resource) {
-        return $resource->fetchObject();
+    public function fetchObject($resource, $class) {
+        return $resource->fetchObject($class);
     }
 
     /**

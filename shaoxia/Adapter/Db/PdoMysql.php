@@ -5,11 +5,13 @@ namespace Shaoxia\Adapter\Db;
 use PDO;
 use Shaoxia\Adapter\Query;
 use Shaoxia\Exceptions\CustomException;
-class PdoMysql extends MyPdo{
+class PdoMysql extends MyPdo {
 
     public function init($config) {
         $pdo = new PDO("mysql:dbname={$config['db']};host={$config['host']};port={$config['port']}", $config['user'], $config['pass']);
-        $pdo->query("set names ". $config['charset']);
+        if ($config['charset']) {
+            $pdo->query("set names ". $config['charset']);
+        }
         return $pdo;
     }
 
@@ -17,7 +19,7 @@ class PdoMysql extends MyPdo{
         switch ($query->type) {
             case Query::TYPE_SELECT: // 查询构造
                 $where = $query->where;
-                return "SELECT " . $query->fields . " FROM " . $query->table . $query->join 
+                return "SELECT " . ($query->fields ?: '*') . " FROM " . $query->table . $query->join 
                 . ($where ? " where ". implode(' and ', $where) : '')
                 . $query->group. $query->having . $query->order 
                 . $query->offset. $query->limit . ($query->lock ? ' for update' : '');

@@ -2,6 +2,8 @@
 
 namespace Shaoxia\Contracts;
 
+use Shaoxia\Contracts\Request;
+
 interface ExceptionHandler
 {
     /**

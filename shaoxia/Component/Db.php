@@ -156,9 +156,7 @@ class Db {
         // 是否需要开启事务, 或当前是否在事务中
         $beginTransaction = false;
         if ($this->_IST) { // 是否支持事务
-            if ($this->_transaction) {
-                $type = Db::DB_WRITE;
-            } else if (static::$globalTransaction) {
+            if (static::$globalTransaction) {
                 $type = Db::DB_WRITE;
                 $beginTransaction = true;
             }
@@ -181,7 +179,7 @@ class Db {
         } else {
             $adapter = static::$_connect_pool[$this->_dirver][$type];
         }
-        // 开启事务, 并加入全局事务
+        // 开启事务成功, 加入全局事务
         if ($beginTransaction && $adapter->beginTransaction()) {
             $this->_transaction_adapter = $adapter; 
             static::$globalTransaction && static::$globalTransactionDBs[] = $this;
@@ -221,6 +219,14 @@ class Db {
         $this->_query->limit(1);
         $resource = $connection->query($this->_query);
         return $connection->fetch($resource);
+    }
+
+    public function count() {
+        
+        $connection = $this->selectConnect();
+        $this->_query->select("count(*) as total");
+        $res = $this->first();
+        return $res['total'] ?: 0;
     }
     
     public function get() {

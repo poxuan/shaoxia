@@ -173,15 +173,16 @@ class Application
      */
     public function __get($name)
     {
+        
         // 如果有别名，先转为原名
         if (isset($this->alias[$name])) {
             $name = $this->alias[$name];
         }
-        
+
 
         if ($this->instand[$name]) { // 已经实例化的，返回实例
             return $this->instand[$name];
-        } elseif ($closure = $this->binded[$name]) { // 有绑定的，实例化后返回
+        } else if ($closure = $this->binded[$name]) { // 有绑定的，实例化后返回
             $instand = $this->ini_clazz($closure);
             $this->instand[$name] = $instand;
             return $instand;
@@ -360,6 +361,7 @@ class Application
     public function ini_param($clazz, $func, $is_route = false)
     {
         $method = new \ReflectionMethod($clazz, $func);
+        $params = [];
         foreach ($method->getParameters() as $param) {
             $name    = $param->getName();
             $clazz2  = $param->getClass();

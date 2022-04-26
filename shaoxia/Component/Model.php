@@ -2,11 +2,12 @@
 
 namespace Shaoxia\Component;
 
+use ArrayAccess;
 use \Shaoxia\Adapter\Db\Query;
 use \Shaoxia\Support\Collection;
 use \Shaoxia\Contracts\Arrayable;
 
-class Model implements Arrayable {
+class Model implements Arrayable, ArrayAccess {
     
     protected $table;
 
@@ -33,6 +34,9 @@ class Model implements Arrayable {
     // 可显示字段，优先级高于 $hidden
     protected $visiable;
 
+    // 修改
+    protected $cast;
+
     public function __construct($data = [])
     {
         $this->rawData = $data;
@@ -45,7 +49,7 @@ class Model implements Arrayable {
 
 
     protected function getTable() {
-        return $this->table ?: toUnderScore(basename(get_class($this)));
+        return $this->table ?: toUnderScore(basename(str_replace('\\', '/', get_class($this))));
     }
 
     public static function __callStatic($name, $arguments)
@@ -81,6 +85,19 @@ class Model implements Arrayable {
         return null;
     }
 
+    public function count() {
+        return $this->connect->count();
+    }
+
+    public function find($id) {
+        $res = $this->connect->where($this->primaryKey, $id)->first();
+        if ($res) {
+            $this->rawData = $res;
+            return $this;
+        }
+        return null;
+    }
+
     public function get() {
         $res = $this->connect->get();
         $collection = new Collection();
@@ -109,14 +126,9 @@ class Model implements Arrayable {
         $data = array_merge($this->rawData ?: [], $data);
         $lastInsertID = $this->connect->insert($data);
         if ($lastInsertID) {
-            $data[$this->primaryKey] = $lastInsertID;
-            $this->rawData = $data;
+            return $this->find($lastInsertID);
         }
         return $this;
-    }
-
-    public function firstOrCreate($data = []) {
-
     }
 
     protected function setRawData($data) {
@@ -143,8 +155,36 @@ class Model implements Arrayable {
             if ($this->visiable && !in_array($name, $this->visiable)) {
                 continue;
             }
+            if (isset($this->cast[$name])) {
+                if ($this->cast[$name] instanceof \Closure) {
+                    $val = $this->cast[$name]($val);
+                } else if ($this->cast[$name] == 'json') {
+                    $val = json_decode($val);
+                } else if ($this->cast[$name] == 'obj') {
+                    $val = unserialize($val);
+                }
+            }
             $arr[$name] = $val;
         }
         return $arr;
+    }
+
+    public function offsetExists($offset) : bool {
+        return true;
+    }
+
+    public function offsetGet($offset) {
+
+        return $this->rawData[$offset] || null;
+    }
+
+    public function offsetSet($offset, $val) :void {
+        $this->updated[$offset] = $val;
+        $this->rawData[$offset] = $val;
+    }
+
+    public function offsetUnset($offset) :void {
+        unset($this->updated[$offset]);
+        unset($this->rawData[$offset]);
     }
 }
