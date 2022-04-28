@@ -10,7 +10,7 @@ use App\Algorithm\Sort\Insertion;
 use App\Algorithm\Sort\Merge;
 use App\Algorithm\Sort\Quick;
 use App\Algorithm\Sort\Selection;
-use Shaoxia\Boot\Request;
+use Shaoxia\Contracts\Request;
 
 class Algorithm 
 {

@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use Shaoxia\Boot\Request;
+use Shaoxia\Contracts\Request;
 use App\Encrypt\DataHide;
 
 class MyEncypt
@@ -25,6 +25,29 @@ class MyEncypt
         return $dh->$type($str);
     }
 
+    // 比较
+    public function dh_comp($str = "",$times=100)
+    {
+        
+        $s = microtime(true);
+        $dh = new DataHide();
+        $arr = [];
+        for( $i=0; $i< $times; $i++ ) {
+            $arr[] = $dh->s2r($str)."\n";
+        }
+        $e = microtime(true);
+        echo count(array_unique($arr));
+        $s2 = microtime(true);
+        for($i=0; $i< $times; $i++ ) {
+            md5($str)."\n";
+        }
+        $e2 = microtime(true);
+        return [
+            's2c' => $e- $s,
+            'md5' => $e2- $s2,
+        ];
+    }
+
     public function dh_test($length,$type='array')
     {
         $dh = new DataHide();
@@ -43,7 +66,7 @@ class MyEncypt
         return ['hide' => $hide, 'show' => $show, 'data' => $data];
     }
 
-    public function dh_try($str, Request $r)
+    public function dh_try_decode($str, Request $r)
     {
         $s = microtime(true);
         $raw = $r->get('raw');

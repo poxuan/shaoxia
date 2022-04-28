@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use \App\Media\Image\Image;
 use App\Model\Abc;
 
 class Model

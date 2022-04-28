@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use Shaoxia\Boot\Request;
+use Shaoxia\Contracts\Request;
 use App\Decode\Js\Js0x;
 use App\Decode\Js\JsCommon;
 
