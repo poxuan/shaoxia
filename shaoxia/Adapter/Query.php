@@ -48,6 +48,7 @@ class Query {
 
     public function table($name, $prefix = "", $as = "") {
         $this->_param['table'] = $prefix.$name. ($as ? ' as '. $as : '');
+        return $this;
     }
 
     public function select($fields) {
@@ -57,10 +58,12 @@ class Query {
         } else {
             $this->_param['fields'] .= $glue . $fields;
         }
+        return $this;
     }
 
     public function join($table, $condition, $type = self::JOIN_LEFT) {
         $this->_param['join'] .= " $type join $table on $condition";
+        return $this;
     }
 
     public function when($condition, $call1 = null, $call2 = null) {
@@ -79,7 +82,20 @@ class Query {
             case 1:
                 $p = $params[0];
                 if (is_callable($p)) {
+                    $c1 = count($this->_param['where']);
                     $p($this);
+                    $c2 = count($this->_param['where']);
+                    $count = $c2 - $c1;
+                    if ($c2 - $c1 > 1) {
+                        $arr = [];
+                        while($count > 1) {
+                            $cu = array_pop($this->_param['where']);
+                            $arr[] = $cu;
+                            $count--;
+                        }
+                        $arr = array_reverse($arr);
+                        $this->_param['where'][] = "( " .implode(" and ", $arr) .")";
+                    }
                 } elseif (is_array($p)) {
                     $count = 0;
                     foreach($p as $k => $v) {
@@ -88,12 +104,11 @@ class Query {
                             array_unshift($v, $k);
                         }
                         call_user_func_array([$this, 'where'], $v) && $count++;
-                        
                     }
                     while($count > 1) {
                         $cu = array_pop($this->_param['where']);
                         $pre = array_pop($this->_param['where']);
-                        $this->_param['where'][] = implode(" and ", [$pre,$cu]);
+                        $this->_param['where'][] = "( " .implode(" and ", [$pre,$cu]) .")";
                         $count--;
                     }
                 } elseif (is_string($p)) {
@@ -146,12 +161,13 @@ class Query {
             default:
                 throw new CustomException("参数数目异常");
         }
-        return true;
+        return $this;
     }
 
     // 查询加锁
     public function lock() {
         $this->_param['lock'] = true;
+        return $this;
     }
 
     // orwhere 条件
@@ -160,19 +176,22 @@ class Query {
         if (count($this->_param['where']) >= 2) {
             $cu = array_pop($this->_param['where']);
             $pre = array_pop($this->_param['where']);
-            $this->_param['where'][] = implode(" or ", [$pre, $cu]);
+            $this->_param['where'][] = "(" . implode(" or ", [$pre, $cu]) . ")";
         }
+        return $this;
     }
 
     // 原始 where 条件
     public function whereRaw($where, $bindings = []) {
         $this->_param['where'][] = $where;
         $this->_param['bindings'] = array_merge($this->_param['bindings'], $bindings);
+        return $this;
     }
 
     // 分组
     public function group($group) {
         $this->_param['group'] = " GROUP BY " . $group;
+        return $this;
     }
 
     // 排序
@@ -182,11 +201,13 @@ class Query {
         } else {
             $this->_param['order'] = " ORDER BY $column $type";
         }
+        return $this;
     }
 
     // 更新字段
     public function columns($data){
         $this->_param['columns'] = $data;
+        
     }
 
     public function limit($limit, $offset = null){
@@ -194,10 +215,12 @@ class Query {
         if ($offset) {
             $this->offset($offset);
         } 
+        return $this;
     }
 
     public function offset($offset){
         $this->_param['offset']  = " OFFSET $offset";
+        return $this;
     }
 
     public function getBindings() {

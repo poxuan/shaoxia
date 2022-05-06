@@ -156,12 +156,17 @@ class Model implements Arrayable, ArrayAccess {
                 continue;
             }
             if (isset($this->cast[$name])) {
-                if ($this->cast[$name] instanceof \Closure) {
-                    $val = $this->cast[$name]($val);
-                } else if ($this->cast[$name] == 'json') {
+                if ($this->cast[$name] == 'json') {
                     $val = json_decode($val);
                 } else if ($this->cast[$name] == 'obj') {
                     $val = unserialize($val);
+                } else if (is_callable( $this->cast[$name])) {
+                    $val = $this->cast[$name]($val);
+                } else if (strpos($this->cast[$name], "|")) { // 带参数的方法
+                    list($func, $vals) = explode("|", $this->cast[$name]);
+                    $vals = explode(";", $vals);
+                    array_unshift($vals, $val);
+                    $val = call_user_func_array($func, $vals);
                 }
             }
             $arr[$name] = $val;

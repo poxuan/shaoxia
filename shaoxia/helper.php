@@ -183,3 +183,7 @@ function rand_str($length){
     }
     return $randstr;
 }
+
+function dateFormat($val, $format = 'm-d H:i') {
+    return ($val == null || $val == 'null') ? null: date($format, strtotime($val));
+}

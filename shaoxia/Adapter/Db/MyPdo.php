@@ -30,7 +30,6 @@ abstract class MyPdo implements DbAdapter{
 
 
     function ping() {
-        // 不在事务中，且上次ping不超过两秒, 用于长期连接处理
         if (!$this->_inTrans && $this->lastPing + 2 < time()) {
             try {
                 $ret = $this->_connect->getAttribute(\PDO::ATTR_SERVER_INFO);
@@ -122,6 +121,7 @@ abstract class MyPdo implements DbAdapter{
                 $sql = $this->parseSql($sql);
             }
             $this->ping();
+            var_dump($sql);
             $resource = $this->_connect->prepare($sql);
             $resource->execute($bindings);
             return $resource;
