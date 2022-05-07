@@ -2,14 +2,14 @@
 
 namespace App\Controller;
 
-use App\Algorithm\Questions\Floordrop;
-use App\Algorithm\Questions\Nqueen;
-use App\Algorithm\Questions\Soduku;
-use App\Algorithm\Sort\Bubble;
-use App\Algorithm\Sort\Insertion;
-use App\Algorithm\Sort\Merge;
-use App\Algorithm\Sort\Quick;
-use App\Algorithm\Sort\Selection;
+use Module\Algorithm\Questions\Floordrop;
+use Module\Algorithm\Questions\Nqueen;
+use Module\Algorithm\Questions\Soduku;
+use Module\Algorithm\Sort\Bubble;
+use Module\Algorithm\Sort\Insertion;
+use Module\Algorithm\Sort\Merge;
+use Module\Algorithm\Sort\Quick;
+use Module\Algorithm\Sort\Selection;
 use Shaoxia\Contracts\Request;
 
 class Algorithm 

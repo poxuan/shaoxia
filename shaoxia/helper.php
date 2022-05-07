@@ -129,8 +129,11 @@ function data_to_xml($data) {
     return $xml;
 }
 
+/**
+ * 输出改成jsonp
+ */
 function jsonp_encode($data, $callback = '') {
-    !$callback && $callback = request('callback','callback');
+    !$callback && $callback = request()->get('callback','callback');
     $res = sprintf("%s(%s);", $callback, json_encode($data));//$arr为返回数据
     return $res;
 }
@@ -173,7 +176,7 @@ function dd($data) {
     exit;
 }
 
-function rand_str($length){
+function randStr($length){
     $str = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     $len = strlen($str)-1;
     $randstr = '';

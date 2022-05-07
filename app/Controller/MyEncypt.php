@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use Shaoxia\Contracts\Request;
-use App\Encrypt\DataHide;
+use Module\Encrypt\DataHide;
 
 class MyEncypt
 {
@@ -28,7 +28,6 @@ class MyEncypt
     // 比较
     public function dh_comp($str = "",$times=100)
     {
-        
         $s = microtime(true);
         $dh = new DataHide();
         $arr = [];
@@ -42,9 +41,22 @@ class MyEncypt
             md5($str)."\n";
         }
         $e2 = microtime(true);
+        $s3 = microtime(true);
+        for($i=0; $i< $times; $i++ ) {
+            sha1 ($str)."\n";
+        }
+        $e3 = microtime(true);
+        $s4 = microtime(true);
+        $openssl_key = '4541&&#886@66';$en_method = 'AES-256-ECB';
+        for($i=0; $i< $times; $i++ ) {
+            $str_en = openssl_encrypt($str,$en_method,$openssl_key);
+        }
+        $e4 = microtime(true);
         return [
-            's2c' => $e- $s,
-            'md5' => $e2- $s2,
+            's2c' => $e - $s,
+            'md5' => $e2 - $s2,
+            'sha1' => $e3 - $s3,
+            'openssl' => $e4 - $s4,
         ];
     }
 
@@ -66,7 +78,7 @@ class MyEncypt
         return ['hide' => $hide, 'show' => $show, 'data' => $data];
     }
 
-    public function dh_try_decode($str, Request $r)
+    public function dh_try($str, Request $r)
     {
         $s = microtime(true);
         $raw = $r->get('raw');

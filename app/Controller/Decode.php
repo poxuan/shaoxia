@@ -3,8 +3,8 @@
 namespace App\Controller;
 
 use Shaoxia\Contracts\Request;
-use App\Decode\Js\Js0x;
-use App\Decode\Js\JsCommon;
+use Module\Decode\Js\Js0x;
+use Module\Decode\Js\JsCommon;
 
 class Decode 
 {

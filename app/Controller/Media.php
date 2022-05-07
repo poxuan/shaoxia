@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use \App\Media\Image\Image;
+use Module\Media\Image\Image;
 
 class Media 
 {
