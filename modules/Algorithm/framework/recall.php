@@ -27,7 +27,7 @@ class recall{
         return true;
     }
 
-    function available(){
+    function available($path, $item){
         return true;
     }
 

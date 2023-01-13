@@ -201,7 +201,7 @@ class BPlusTree
 
     /**
      * @param $index
-     * @return Data|string
+     * @return array
      *
      * 索引单条查询
      */

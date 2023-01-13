@@ -360,7 +360,6 @@ class Route
                     $bind = $match;
                     $middleware = static::$routeMiddlewares[$method][$route] ?? [];
                     list($controller, $func) =  explode("@", static::$allRoutes[$method][$route]);
-                    $controller = $controller;
                     return [$controller,$func];
                 } else {
                     throw new RouteNotMatchException("不支持的请求方式:".$route);

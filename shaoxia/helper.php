@@ -90,7 +90,7 @@ function app()
 /**
  * 获取请求参数或请求实例
  * 
- * @return mixed|Shaoxia\Boot\Request
+ * @return mixed|Shaoxia\Contracts\Request
  */
 function request($key = '') {
     if (empty($key)) {
@@ -103,7 +103,7 @@ function request($key = '') {
 /**
  * 获取响应实例
  * 
- * @return Shaoxia\Boot\Response
+ * @return Shaoxia\Contracts\Response
  */
 function response() {
     return app()->getResponse();

@@ -183,12 +183,12 @@ class Model implements Arrayable, ArrayAccess {
         return $this->rawData[$offset] || null;
     }
 
-    public function offsetSet($offset, $val) :void {
+    public function offsetSet($offset, $val)  {
         $this->updated[$offset] = $val;
         $this->rawData[$offset] = $val;
     }
 
-    public function offsetUnset($offset) :void {
+    public function offsetUnset($offset) {
         unset($this->updated[$offset]);
         unset($this->rawData[$offset]);
     }

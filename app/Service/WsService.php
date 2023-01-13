@@ -12,6 +12,8 @@ class WsService
     // WS端口
     private $port;
 
+    private $server;
+
     // 全部连接 - 仅用于单线程模式
     private $allConnect = [];
 

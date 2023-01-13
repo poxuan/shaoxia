@@ -16,36 +16,12 @@ Route::baseGroup("api", [
     ]
 ]);
 
-// 匹配空
-Route::get("/", "Media@image");
 
-// GET路由,类名必须全拼或在config设置别名
-Route::middleware(['test3'])->get("image/dd-{angle}", "Media@image")->pattern(['angle' => '\d+']);
-
-// resource路由
-Route::resource("media", "Media");
-
-// 组配置
-Route::prefix('dh')->middleware('test3')->group(function($route) {
-    $route->get("hide", "MyEncypt@dh_hide");
-    $route->get("show", "MyEncypt@dh_show");
-    $route->get("test", "MyEncypt@dh_test");
-    $route->get("try", "MyEncypt@dh_try");
-    $route->get("comp", "MyEncypt@dh_comp");
-});
-
-// 组配置
-Route::prefix('algo')->middleware('test3')->group(function($route) {
-    $route->get("sort", "Algorithm@sort");
-    $route->get("nqueen", "Algorithm@nqueen");
-    $route->get("sudoku", "Algorithm@sudoku");
-    $route->get("floordrop", "Algorithm@floordrop");
-});
-
-
-Route::get("decode/jsc", "Decode@jsc");
-
-Route::get("model/abc", "Model@abc");
+Route::get("excel/import", "Excel@import");
+Route::get("tag/get", "Tag@get");
+Route::get("tag/e-{line}", "Tag@export");
+Route::get("down/list", "Down@list");
+Route::get("down/view", "Down@view");
 
 // 最后要清空当前组，防止多文件串化
 Route::clearGroup();

@@ -43,7 +43,7 @@ class Index
     }
 
     /**
-     * @return Array
+     * @return array
      */
     public function getData()
     {

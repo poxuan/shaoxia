@@ -18,7 +18,7 @@ class JsonDB{
      */
     public function __construct($dbname='', $dbpath = ''){
         if ($dbpath) $this->dbpath = $dbpath;
-        return $this->open($dbname);
+        $this->open($dbname);
     }
     /**
      * 初始化打开数据库
@@ -158,31 +158,27 @@ class JsonDB{
         $allow=array('eq','neq','like','in','notin','gt','lt','egt','elt','heq','nheq','between','notbetween');
         if(!in_array($exp[0],$allow))return false;
         switch($exp[0]){
-            case "eq":return $data==$exp[1];break;
-            case "neq":return $data!=$exp[1];break;
-            case "heq":return $data===$exp[1];break;
-            case "nheq":return $data!==$exp[1];break;
-            case "like":return $this->str_exists($data,$exp[1]);break;
+            case "eq":return $data==$exp[1];
+            case "neq":return $data!=$exp[1];
+            case "heq":return $data===$exp[1];
+            case "nheq":return $data!==$exp[1];
+            case "like":return $this->str_exists($data,$exp[1]);
             case "in":
             if(!is_array($exp[1]))$exp[1]=explode(',',$exp[1]);
             return in_array($data,$exp[1]);
-            break;
             case "notin":
             if(!is_array($exp[1]))$exp[1]=explode(',',$exp[1]);
             return !in_array($data,$exp[1]);
-            break;
-            case "gt":return $data>$exp[1];break;
-            case "lt":return $data<$exp[1];break;
-            case "egt":return $data>=$exp[1];break;
-            case "elt":return $data<=$exp[1];break;
+            case "gt":return $data>$exp[1];
+            case "lt":return $data<$exp[1];
+            case "egt":return $data>=$exp[1];
+            case "elt":return $data<=$exp[1];
             case "between":
             if(!is_array($exp[1]))$exp[1]=explode(',',$exp[1]);
             return $data>=$exp[1][0] && $data<=$exp[1][1];
-            break;
             case "notbetween":
             if(!is_array($exp[1]))$exp[1]=explode(',',$exp[1]);
             return $data<$exp[1][0] && $data>$exp[1][1];
-            break;
         }
         return false;
     }

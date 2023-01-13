@@ -76,7 +76,7 @@ trait ImageSave
      *
      * @param string|int $dstImgName
      * @param string|int $localName
-     * @return void
+     * @return string|bool
      * @author chentengfei
      * @since
      */

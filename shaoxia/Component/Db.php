@@ -132,7 +132,6 @@ class Db {
             $this->_transaction_adapter->rollback();
         }
         $this->_transaction_adapter = null;
-        $this->_transaction = false;
     }
 
     public function _commit() {
@@ -140,7 +139,6 @@ class Db {
             $this->_transaction_adapter->commit();
         }
         $this->_transaction_adapter = null;
-        $this->_transaction = false;
     }
 
     /**

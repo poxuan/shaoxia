@@ -127,7 +127,6 @@ class Query {
                     case '<>':
                     case '>=':
                     case '>':
-                    case '>=':
                     case '<':
                     case '<=':
                     case 'like':

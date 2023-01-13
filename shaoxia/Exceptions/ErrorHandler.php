@@ -2,8 +2,8 @@
 
 namespace Shaoxia\Exceptions;
 
-use Shaoxia\Boot\ExceptionHandler;
-use Shaoxia\Boot\Request;
+use Shaoxia\Contracts\ExceptionHandler;
+use Shaoxia\Contracts\Request;
 
 /**
  * Class File

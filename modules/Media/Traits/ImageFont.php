@@ -14,7 +14,7 @@ trait ImageFont
     /**
      * 获取目前支持的字体列表
      *
-     * @return void
+     * @return array
      * @author chentengfei
      * @since
      */
@@ -39,18 +39,18 @@ trait ImageFont
      * 按名称获取字体文件
      *
      * @param string $name
-     * @return void
+     * @return string
      * @author chentengfei
      * @since
      */
     public function getFont($name = '')
     {
         if (file_exists($this->fontpath . $name . '.otf')) {
-            return \realpath($this->fontpath . $name . '.otf');
+            return realpath($this->fontpath . $name . '.otf');
         } elseif (file_exists($this->fontpath . $name . '.ttf')) {
-            return \realpath($this->fontpath . $name . '.ttf');
+            return realpath($this->fontpath . $name . '.ttf');
         } else {
-            return \realpath($this->fontpath . $this->fontdefault . '.ttf');
+            return realpath($this->fontpath . $this->fontdefault . '.ttf');
         }
     }
 

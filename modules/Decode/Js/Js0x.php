@@ -14,6 +14,8 @@ class Js0x {
     // 目标值
     public $target = 0;
 
+    private $constant = "";
+
     function __construct($content) {
         if (empty($content)) {
             die("请先加载文件");
@@ -115,8 +117,8 @@ class Js0x {
                 } elseif (preg_match($pattern, $r, $match)) {
                     if ($match[1][0] == '[') { // 是数组
                         $res = 'a' . $p++;
-                    } elseif ((strpos($match[1],'.')) > 0) { // 对象的某个值
-                        $end = end(explode(".", $match[1]));
+                    } elseif ((strpos($match[1][0],'.')) > 0) { // 对象的某个值
+                        $end = end(explode(".", $match[1][0]));
                         $res =  '_' . $end;
                         if (in_array($res, $params)) { // 已经出现过的, 在后面加数字区分
                             $i = 1;
