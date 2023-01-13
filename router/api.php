@@ -1,7 +1,7 @@
 <?php
 
-// 设置别名后这个就不用了,
-// use Shaoxia\Boot\Route;
+// 设置别名后这个就可以不用了, 但编辑器没这么智能
+use Shaoxia\Boot\Route;
 
 // 自此以下，全局配置
 Route::baseGroup("api", [
