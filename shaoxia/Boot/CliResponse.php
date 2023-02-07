@@ -7,7 +7,7 @@ class CliResponse implements Response
 {
     protected $resource = null;
 
-    public function resource($resource = null) 
+    public function resource($resource, $type = NULL) 
     {
         $this->resource = $resource;
         return $this;
